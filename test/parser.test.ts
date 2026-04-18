@@ -101,6 +101,8 @@ test("build standalone site output", async () => {
   assert.match(indexHtml, /Open dependency graph/);
   const graphHtml = await readOutputFile(path.join(outDir, "graph.html"), "utf-8");
   assert.match(graphHtml, /Dependency Graph/);
+  assert.match(graphHtml, /<svg /);
+  assert.match(graphHtml, /Solid edges = formal, dashed edges = informal/);
   const entryHtml = await readOutputFile(path.join(outDir, "entries", "thm_sylow_exists.html"), "utf-8");
   assert.match(entryHtml, /Sylow existence/);
   assert.match(entryHtml, /status: <strong>blocked<\/strong>/);
@@ -195,6 +197,6 @@ test("sync-write updates generated metadata in entry front matter", async () => 
   await syncWrite(tempRoot);
   const synced = await readOutputFile(targetEntry, "utf-8");
   assert.match(synced, /formal:\n    - def:p_group/);
-  assert.match(synced, /used_by:\n  \[\]/);
+  assert.match(synced, /used_by: \[\]/);
   assert.match(synced, /blocked_by:\n  - def:p_group/);
 });

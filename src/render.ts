@@ -110,6 +110,47 @@ function renderOverviewPage(registry: Registry): string {
 
 function renderGraphPage(registry: Registry): string {
   const graph = buildGraphData(registry);
+  const nodeSpacing = 96;
+  const width = 900;
+  const leftX = 120;
+  const rectWidth = 220;
+  const rectHeight = 44;
+  const topY = 60;
+  const nodeIndex = new Map(graph.nodes.map((node, index) => [node.id, index]));
+  const svgHeight = Math.max(180, topY + graph.nodes.length * nodeSpacing);
+
+  const edgeSvg = graph.edges
+    .map((edge) => {
+      const fromIndex = nodeIndex.get(edge.from) ?? 0;
+      const toIndex = nodeIndex.get(edge.to) ?? 0;
+      const fromY = topY + fromIndex * nodeSpacing + rectHeight / 2;
+      const toY = topY + toIndex * nodeSpacing + rectHeight / 2;
+      const strokeDash = edge.source === "informal" ? ' stroke-dasharray="6 4"' : "";
+      return `<line x1="${leftX + rectWidth}" y1="${fromY}" x2="${leftX}" y2="${toY}" stroke="#8a8678" stroke-width="2"${strokeDash} />`;
+    })
+    .join("\n");
+
+  const nodeSvg = graph.nodes
+    .map((node, index) => {
+      const y = topY + index * nodeSpacing;
+      const fill =
+        node.status === "formalized"
+          ? "#d7f0d5"
+          : node.status === "incomplete"
+            ? "#f8d7d7"
+            : node.status === "blocked"
+              ? "#f6e9c7"
+              : "#ececec";
+      return `
+        <g>
+          <rect x="${leftX}" y="${y}" width="${rectWidth}" height="${rectHeight}" rx="8" fill="${fill}" stroke="#5d5a50" />
+          <text x="${leftX + 12}" y="${y + 18}" font-size="12" font-family="sans-serif" fill="#444">${escapeHtml(node.kind)}</text>
+          <text x="${leftX + 12}" y="${y + 34}" font-size="14" font-family="sans-serif" fill="#111">${escapeHtml(node.id)}</text>
+        </g>
+      `;
+    })
+    .join("\n");
+
   const nodeItems = graph.nodes
     .map(
       (node) =>
@@ -132,7 +173,15 @@ function renderGraphPage(registry: Registry): string {
         <h1>Dependency Graph</h1>
         <p><a href="/index.html">Back to overview</a></p>
         <p>JSON data: <code>/generated/dep-graph.json</code></p>
+        <p>Solid edges = formal, dashed edges = informal.</p>
       </header>
+      <section>
+        <h2>SVG View</h2>
+        <svg viewBox="0 0 ${width} ${svgHeight}" width="100%" height="${svgHeight}" role="img" aria-label="Dependency graph">
+          ${edgeSvg}
+          ${nodeSvg}
+        </svg>
+      </section>
       <section>
         <h2>Nodes</h2>
         <ul>${nodeItems}</ul>
