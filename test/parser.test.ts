@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { migrateBlueprintFile, writeMigratedEntries } from "../src/blueprint.js";
+import { buildEntryContextBundle, buildEntryReviewBundle } from "../src/context.js";
 import { exportProject } from "../src/export.js";
 import { countActiveSorry } from "../src/lean.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
@@ -110,4 +111,17 @@ test("export machine-readable project artifacts", async () => {
   const graphJson = await readOutputFile(path.join(outDir, "dep-graph.json"), "utf-8");
   assert.match(graphJson, /"source": "informal"/);
   assert.match(graphJson, /"source": "formal"/);
+});
+
+test("build entry context and review bundles", async () => {
+  const result = await checkRegistry("test/fixtures/project");
+  const context = buildEntryContextBundle(result.registry, "thm:sylow_exists");
+  assert.equal(context.id, "thm:sylow_exists");
+  assert.equal(context.status, "blocked");
+  assert.deepEqual(context.blocked_by, ["def:p_group"]);
+  assert.match(context.sections.proof_outline, /Reduce to a counting argument/);
+
+  const review = buildEntryReviewBundle(result.registry, "thm:sylow_exists");
+  assert.equal(review.issues.errors.length, 0);
+  assert.equal(review.issues.warnings.length, 0);
 });
