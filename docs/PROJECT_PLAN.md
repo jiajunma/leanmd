@@ -50,6 +50,7 @@ It should be optimized for non-linear exploration rather than forcing a linear c
 - the product should be a presentation system first, not a linear document compiler
 - default navigation should be graph-oriented rather than chapter-oriented
 - entry documents should be easy for coding agents to parse and rewrite
+- entry-level checks should be designed to run in parallel by default
 
 ## 3A. Relationship To `leanblueprint`
 
@@ -538,6 +539,13 @@ Status note:
 
 This is a first-class feature, not an afterthought.
 
+Parallelism rule:
+
+- entry-level structural checks should be independent tasks whenever possible
+- entry-level semantic review bundles should also be producible independently
+- the checking pipeline should therefore be designed around per-entry jobs that can run in parallel
+- shared project-wide passes should be kept small and clearly separated from per-entry work
+
 The tool should support two kinds of checks.
 
 ### Rule checks
@@ -994,6 +1002,7 @@ Responsible for:
 - serving cached dependency slices
 - reporting Lean-confirmed completion state
 - keeping expensive project scans outside the main interaction context
+- scheduling or serving entry-level checks in parallel where appropriate
 
 ## 13. CLI Surface
 
@@ -1072,6 +1081,7 @@ Chosen MVP defaults:
 - the overview entry point is one Markdown file with YAML front matter
 - `blocked` is computed from formal direct dependencies only
 - cluster metadata stays lightweight in MVP
+- entry-level checks should be parallelizable in the implementation
 
 ### Explicit non-goals for MVP
 
@@ -1152,6 +1162,11 @@ Current MVP answer:
 - What exactly invalidates an AI review result?
 - Should caching happen at file level, declaration level, or entry level?
 - How should TikZ build cache and theorem-packet cache interact?
+
+Current direction:
+
+- caching and scheduling should be entry-oriented wherever practical
+- entry-level checks are intended to parallelize cleanly
 
 ### Skills boundary
 
