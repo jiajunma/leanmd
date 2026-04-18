@@ -1,0 +1,15 @@
+\begin{definition}[P-group]
+\label{def:p_group}
+A finite group $G$ is a $p$-group if $|G|$ is a power of $p$.
+\end{definition}
+
+\begin{theorem}[Sylow existence]
+\label{thm:sylow_exists}
+\lean{MyProject.GroupTheory.sylow_exists}
+\uses{def:p_group}
+Let $G$ be a finite group.
+\end{theorem}
+\begin{proof}
+\uses{def:p_group}
+Count orbits and conclude.
+\end{proof}
