@@ -240,6 +240,12 @@ Preferred fixed sections:
 # Open gaps
 ```
 
+Required-section rule:
+
+- `Key dependencies` is a required section for every entry page
+- it may be temporarily sparse, but it must be present
+- this section is the primary home for narrative dependencies in the Markdown layer
+
 Rationale:
 
 - AI can compare field-to-field instead of prose-to-proof wholesale.
