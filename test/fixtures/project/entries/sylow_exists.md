@@ -7,8 +7,7 @@ status: formalized
 depends_on:
   informal:
     - def:p_group
-  formal:
-    - def:p_group
+  formal: []
 used_by: []
 blocked_by: []
 lean:

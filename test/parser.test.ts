@@ -10,6 +10,7 @@ import { compareBlueprintPathToProject } from "../src/compare.js";
 import { buildEntryContextBundle, buildEntryReviewBundle } from "../src/context.js";
 import { exportProject } from "../src/export.js";
 import { countActiveSorry } from "../src/lean.js";
+import { loadFormalDependencyOverrides } from "../src/lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
 import { buildSite } from "../src/render.js";
 import { checkRegistry } from "../src/registry.js";
@@ -109,6 +110,11 @@ test("load benchmark manifests", async () => {
   const pfr = await loadBenchmarkById("benchmarks", "pfr");
   assert.equal(pfr.title, "PFR Conjecture");
   assert.match(pfr.published_blueprint, /teorth\.github\.io\/pfr\/blueprint/);
+});
+
+test("load formal dependency overrides", async () => {
+  const overrides = await loadFormalDependencyOverrides("test/fixtures/project");
+  assert.deepEqual(overrides["thm:sylow_exists"], ["def:p_group"]);
 });
 
 test("export machine-readable project artifacts", async () => {

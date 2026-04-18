@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { countActiveSorryInFile, fileExists } from "./lean.js";
+import { loadFormalDependencyOverrides } from "./lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import type {
   EntryStatus,
@@ -168,23 +169,42 @@ function computeStatus(
 
 export async function buildRegistry(rootDir: string): Promise<Registry> {
   const overview = await loadOverview(rootDir);
-  const entryDocs = await loadEntries(rootDir);
+  const [entryDocs, formalOverrides] = await Promise.all([
+    loadEntries(rootDir),
+    loadFormalDependencyOverrides(rootDir),
+  ]);
+  const normalizedDocs = entryDocs.map((document) => {
+    const override = formalOverrides[document.frontMatter.id];
+    if (!override) {
+      return document;
+    }
+    return {
+      ...document,
+      frontMatter: {
+        ...document.frontMatter,
+        depends_on: {
+          ...document.frontMatter.depends_on,
+          formal: override,
+        },
+      },
+    };
+  });
   const byId = new Map<string, RegistryEntry>();
-  const usedByMap = computeUsedBy(entryDocs);
+  const usedByMap = computeUsedBy(normalizedDocs);
   const baseStatuses = new Map<string, EntryStatus>();
   const activeSorryCounts = new Map<string, number | null>();
 
   await Promise.all(
-    entryDocs.map(async (document) => {
+    normalizedDocs.map(async (document) => {
       const { status, activeSorryCount } = await computeBaseStatus(document, rootDir);
       baseStatuses.set(document.frontMatter.id, status);
       activeSorryCounts.set(document.frontMatter.id, activeSorryCount);
     }),
   );
 
-  const blockedByMap = computeBlockedBy(entryDocs, baseStatuses);
+  const blockedByMap = computeBlockedBy(normalizedDocs, baseStatuses);
 
-  const entries = entryDocs.map((document) => {
+  const entries = normalizedDocs.map((document) => {
     const usedBy = usedByMap.get(document.frontMatter.id) ?? [];
     const blockedBy = blockedByMap.get(document.frontMatter.id) ?? [];
     const computedStatus = computeStatus(baseStatuses.get(document.frontMatter.id) ?? "missing", blockedBy);
