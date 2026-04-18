@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import MarkdownIt from "markdown-it";
 import { buildEntryContextBundle, buildEntryReviewBundle } from "./context.js";
-import { buildGraphData, buildRegistryData, buildStatusData } from "./export.js";
+import { buildGraphData, buildRegistryData, buildSiteManifest, buildStatusData } from "./export.js";
 import { buildRegistry } from "./registry.js";
 import type { Registry, RegistryEntry } from "./registry.js";
 
@@ -379,6 +379,11 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
   await writeFile(
     path.join(generatedDir, "dep-graph.json"),
     JSON.stringify(graphData, null, 2),
+    "utf-8",
+  );
+  await writeFile(
+    path.join(generatedDir, "site-manifest.json"),
+    JSON.stringify(buildSiteManifest(registry), null, 2),
     "utf-8",
   );
 

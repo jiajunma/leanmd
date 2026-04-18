@@ -98,7 +98,7 @@ test("build standalone site output", async () => {
   const registry = await buildSite("test/fixtures/project", outDir);
   assert.equal(registry.entries.length, 2);
   const generated = (await readdir(path.join(outDir, "generated"))).sort();
-  assert.deepEqual(generated, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "status.json"]);
+  assert.deepEqual(generated, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "site-manifest.json", "status.json"]);
   const indexHtml = await readOutputFile(path.join(outDir, "index.html"), "utf-8");
   assert.match(indexHtml, /Demo Project/);
   assert.match(indexHtml, /Open dependency graph/);
@@ -121,6 +121,9 @@ test("build standalone site output", async () => {
   assert.match(entryHtml, /status: <strong>blocked<\/strong>/);
   const reviewFiles = (await readdir(path.join(outDir, "generated", "entry-review"))).sort();
   assert.deepEqual(reviewFiles, ["def_p_group.json", "thm_sylow_exists.json"]);
+  const manifest = await readOutputFile(path.join(outDir, "generated", "site-manifest.json"), "utf-8");
+  assert.match(manifest, /"overview": "index.html"/);
+  assert.match(manifest, /"page": "clusters\/sylow.html"/);
 });
 
 test("load benchmark manifests", async () => {
@@ -146,7 +149,7 @@ test("export machine-readable project artifacts", async () => {
   const registry = await exportProject("test/fixtures/project", outDir);
   assert.equal(registry.entries.length, 2);
   const files = (await readdir(outDir)).sort();
-  assert.deepEqual(files, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "status.json"]);
+  assert.deepEqual(files, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "site-manifest.json", "status.json"]);
   const graphJson = await readOutputFile(path.join(outDir, "dep-graph.json"), "utf-8");
   assert.match(graphJson, /"source": "informal"/);
   assert.match(graphJson, /"source": "formal"/);

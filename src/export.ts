@@ -19,6 +19,39 @@ export interface GraphData {
   }>;
 }
 
+export interface SiteManifest {
+  overview: string;
+  graph: string;
+  status: string;
+  clusters: Array<{
+    cluster: string;
+    page: string;
+  }>;
+  entries: Array<{
+    id: string;
+    page: string;
+    context_json: string;
+    review_json: string;
+  }>;
+  generated: {
+    registry: string;
+    status: string;
+    dep_graph: string;
+  };
+}
+
+function entryJsonName(id: string): string {
+  return `${id}.json`.replaceAll("/", "_").replaceAll(":", "_");
+}
+
+function entryHtmlName(id: string): string {
+  return `${id}.html`.replaceAll("/", "_").replaceAll(":", "_");
+}
+
+function clusterHtmlName(cluster: string): string {
+  return `${cluster}.html`.replaceAll("/", "_").replaceAll(":", "_");
+}
+
 export function buildGraphData(registry: Registry): GraphData {
   const nodes = registry.entries.map((entry) => ({
     id: entry.document.frontMatter.id,
@@ -65,6 +98,33 @@ export function buildStatusData(registry: Registry) {
   }));
 }
 
+export function buildSiteManifest(registry: Registry): SiteManifest {
+  const clusters = [...new Set(registry.entries.map((entry) => entry.document.frontMatter.cluster))]
+    .sort()
+    .map((cluster) => ({
+      cluster,
+      page: `clusters/${clusterHtmlName(cluster)}`,
+    }));
+
+  return {
+    overview: "index.html",
+    graph: "graph.html",
+    status: "status.html",
+    clusters,
+    entries: registry.entries.map((entry) => ({
+      id: entry.document.frontMatter.id,
+      page: `entries/${entryHtmlName(entry.document.frontMatter.id)}`,
+      context_json: `generated/entry-context/${entryJsonName(entry.document.frontMatter.id)}`,
+      review_json: `generated/entry-review/${entryJsonName(entry.document.frontMatter.id)}`,
+    })),
+    generated: {
+      registry: "generated/registry.json",
+      status: "generated/status.json",
+      dep_graph: "generated/dep-graph.json",
+    },
+  };
+}
+
 export async function exportProject(rootDir: string, outDir: string): Promise<Registry> {
   const registry = await buildRegistry(rootDir);
   const contextDir = path.join(outDir, "entry-context");
@@ -76,9 +136,10 @@ export async function exportProject(rootDir: string, outDir: string): Promise<Re
   await writeFile(path.join(outDir, "registry.json"), JSON.stringify(buildRegistryData(registry), null, 2), "utf-8");
   await writeFile(path.join(outDir, "status.json"), JSON.stringify(buildStatusData(registry), null, 2), "utf-8");
   await writeFile(path.join(outDir, "dep-graph.json"), JSON.stringify(buildGraphData(registry), null, 2), "utf-8");
+  await writeFile(path.join(outDir, "site-manifest.json"), JSON.stringify(buildSiteManifest(registry), null, 2), "utf-8");
 
   for (const entry of registry.entries) {
-    const fileName = `${entry.document.frontMatter.id}.json`.replaceAll("/", "_").replaceAll(":", "_");
+    const fileName = entryJsonName(entry.document.frontMatter.id);
     await writeFile(
       path.join(contextDir, fileName),
       JSON.stringify(buildEntryContextBundle(registry, entry.document.frontMatter.id), null, 2),
