@@ -15,6 +15,7 @@ import { loadFormalDependencyOverrides } from "../src/lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
 import { buildSite } from "../src/render.js";
 import { checkRegistry } from "../src/registry.js";
+import { loadSyncPreview } from "../src/sync.js";
 
 test("parse entry document", async () => {
   const content = await readFile("test/fixtures/entries/sample-entry.md", "utf-8");
@@ -171,4 +172,13 @@ test("build benchmark report", async () => {
   assert.equal(report.benchmark.id, "pfr");
   assert.equal(report.comparison.source_entry_count, 2);
   assert.deepEqual(report.comparison.missing_in_target, []);
+});
+
+test("build sync preview", async () => {
+  const preview = await loadSyncPreview("test/fixtures/project");
+  const theorem = preview.find((entry) => entry.id === "thm:sylow_exists");
+  assert.ok(theorem);
+  assert.equal(theorem.generated.computed_status, "blocked");
+  assert.deepEqual(theorem.generated.blocked_by, ["def:p_group"]);
+  assert.deepEqual(theorem.generated.formal_dependencies, ["def:p_group"]);
 });

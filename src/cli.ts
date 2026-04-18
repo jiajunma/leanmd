@@ -10,12 +10,13 @@ import { exportProject } from "./export.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import { buildSite } from "./render.js";
 import { checkRegistry } from "./registry.js";
+import { loadSyncPreview } from "./sync.js";
 
 async function main(): Promise<void> {
   const [, , command, target, maybeOutDir, ...rest] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report> <path> [arg]");
+    console.error("Usage: leanmd <entry|overview|check|sync|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report> <path> [arg]");
     process.exitCode = 1;
     return;
   }
@@ -55,6 +56,12 @@ async function main(): Promise<void> {
     if (result.issues.some((issue) => issue.level === "error")) {
       process.exitCode = 1;
     }
+    return;
+  }
+
+  if (command === "sync") {
+    const preview = await loadSyncPreview(target);
+    console.log(JSON.stringify(preview, null, 2));
     return;
   }
 
