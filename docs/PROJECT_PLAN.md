@@ -134,7 +134,7 @@ Suggested logical fields:
 
 - `id`
 - `kind`
-- `lean_name`
+- `lean_name` (optional before formalization)
 - `cluster_id`
 - `helper_decls`
 - `depends_on`
@@ -150,6 +150,12 @@ Suggested logical fields:
 - `open_gaps`
 - `alignment_status`
 - `source_location`
+
+Lean-binding rule:
+
+- entries may exist before any Lean code has been written
+- Lean-related fields should therefore be optional for pre-formalization entries
+- once an entry moves into formalization, its Lean bindings should become populated and checkable
 
 Important rule:
 
@@ -284,8 +290,8 @@ Page-binding rule:
 Authoring-role rule:
 
 - humans are not expected to hand-write every proof detail
-- humans may contribute problems, ideas, and high-level strategies
-- AI may help generate natural-language proof text and Lean proof drafts
+- humans mainly contribute problems, ideas, directions, and high-level strategies
+- AI is expected to generate most natural-language proof text and Lean proof drafts
 - the system's responsibility is to align these layers and reflect real project status accurately
 
 Preferred front matter:
@@ -459,8 +465,8 @@ Hard-error rule for MVP:
 
 - duplicate ids are hard errors
 - missing main Markdown pages are hard errors
-- missing main Lean files or bindings are hard errors
-- nonexistent bound declarations are hard errors
+- missing main Lean files or bindings are hard errors only for entries that claim Lean formalization
+- nonexistent bound declarations are hard errors only when a Lean binding is present
 - missing required sections are hard errors
 
 ### Semantic alignment checks
