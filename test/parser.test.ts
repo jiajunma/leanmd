@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { mkdtemp, readdir, readFile as readOutputFile } from "node:fs/promises";
+import { cp, mkdtemp, readdir, readFile as readOutputFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
@@ -15,7 +15,7 @@ import { loadFormalDependencyOverrides } from "../src/lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
 import { buildSite } from "../src/render.js";
 import { checkRegistry } from "../src/registry.js";
-import { loadSyncPreview } from "../src/sync.js";
+import { loadSyncPreview, syncWrite } from "../src/sync.js";
 
 test("parse entry document", async () => {
   const content = await readFile("test/fixtures/entries/sample-entry.md", "utf-8");
@@ -181,4 +181,20 @@ test("build sync preview", async () => {
   assert.equal(theorem.generated.computed_status, "blocked");
   assert.deepEqual(theorem.generated.blocked_by, ["def:p_group"]);
   assert.deepEqual(theorem.generated.formal_dependencies, ["def:p_group"]);
+});
+
+test("sync-write updates generated metadata in entry front matter", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "leanmd-sync-write-"));
+  await cp("test/fixtures/project", tempRoot, { recursive: true });
+
+  const targetEntry = path.join(tempRoot, "entries", "sylow_exists.md");
+  const original = await readOutputFile(targetEntry, "utf-8");
+  const modified = original.replace("  formal: []", "  formal:\n    - thm:wrong_dep");
+  await writeFile(targetEntry, modified, "utf-8");
+
+  await syncWrite(tempRoot);
+  const synced = await readOutputFile(targetEntry, "utf-8");
+  assert.match(synced, /formal:\n    - def:p_group/);
+  assert.match(synced, /used_by:\n  \[\]/);
+  assert.match(synced, /blocked_by:\n  - def:p_group/);
 });
