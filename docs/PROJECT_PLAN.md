@@ -69,17 +69,15 @@ The central unit is an `Entry`.
 
 An `Entry` represents one mathematical object such as:
 
-- theorem
-- lemma
-- definition
-- proposition
-- corollary
+- a main theorem together with its immediately supporting local lemmas
+- a definition together with its key derived facts
+- a small proof cluster that forms one coherent narrative unit
 
 Each entry should have a stable `id` and bind:
 
 - one primary Lean declaration
 - one primary Markdown narrative page
-- zero or more helper declarations
+- zero or more helper declarations in the same proof cluster
 - structured metadata for project management
 
 Suggested schema:
@@ -98,6 +96,7 @@ Suggested logical fields:
 - `id`
 - `kind`
 - `lean_name`
+- `helper_decls`
 - `formal_statement`
 - `informal_statement`
 - `assumptions`
@@ -117,12 +116,19 @@ Important rule:
 - Markdown may describe intent or progress notes, but not override Lean-confirmed state.
 - in particular, `formalized` should mean `sorry-free` on the Lean side.
 
+Granularity rule:
+
+- the default unit is a small proof cluster, not a single declaration in isolation
+- each entry should still have one main declaration as its anchor
+- helper lemmas may belong to the same entry when they are part of one local proof story
+- entries should remain small enough that AI review can run theorem-locally without broad context expansion
+
 ## 5. File Organization
 
 The current preferred direction is:
 
-- one Lean file for formal code
-- one nearby Markdown file for theorem-level narrative
+- one Lean file or one small Lean directory for a proof cluster
+- one nearby Markdown file for cluster-level narrative
 - Lean comments only for local technical notes
 
 Example:
@@ -130,10 +136,14 @@ Example:
 ```text
 GroupTheory/
   Sylow/
-    exists.lean
-    exists.md
-    conjugacy.lean
-    conjugacy.md
+    exists/
+      main.lean
+      helpers.lean
+      entry.md
+    conjugacy/
+      main.lean
+      helpers.lean
+      entry.md
 ```
 
 Why this layout:
@@ -142,6 +152,7 @@ Why this layout:
 - Markdown editing stays pleasant.
 - AI can easily map files by path and id.
 - Drift detection is easier.
+- one narrative page can cover the main theorem and its local helper layer without artificial splitting
 
 We explicitly do **not** want to put the entire natural-language proof into Lean comments.
 
@@ -194,6 +205,7 @@ Rationale:
 - Statement drift is easier to catch.
 - Dependencies can be reviewed locally.
 - authoritative completion state stays on the Lean side instead of drifting in prose.
+- one page can describe a coherent proof cluster instead of scattering explanation across many tiny pages
 
 ## 7. Lean-Side Responsibilities
 
@@ -205,6 +217,7 @@ The Lean-side exporter should provide:
 - kind
 - pretty-printed type
 - source location
+- cluster membership
 - local declarations used
 - external declarations used
 - tags/status if present
@@ -273,13 +286,14 @@ That means:
 
 The tool should not ask AI to read an entire project or all of Mathlib.
 
-Instead it should generate a theorem-level review bundle containing:
+Instead it should generate an entry-level review bundle containing:
 
 - formal statement
 - informal statement
 - assumptions
 - conclusion
 - proof outline
+- helper declarations
 - semantic dependencies
 - selected external dependencies
 - notation table
@@ -311,7 +325,7 @@ The goal of the skills layer is:
 
 Candidate built-in skills:
 
-- `align-review`: compare one theorem entry against its Lean declaration
+- `align-review`: compare one entry against its main Lean declaration and helper layer
 - `statement-draft`: draft an informal statement from a Lean theorem type
 - `outline-check`: compare proof outline against semantic dependencies
 - `gap-audit`: inspect open gaps and suggest next formalization tasks
@@ -705,9 +719,10 @@ Current MVP answer:
 
 ### Entry granularity
 
-- Is the right unit always one entry per theorem, or do some projects need one entry per section or proof cluster?
-- How should one Markdown page relate to multiple helper declarations?
-- How should one Lean file with many small lemmas map back to entry pages?
+- The current default is one entry per small proof cluster.
+- We still need to decide how large a cluster may become before it should be split.
+- We still need precise rules for when a helper lemma deserves its own entry rather than remaining inside a cluster.
+- We still need precise mapping rules from multi-file proof clusters back to one entry page.
 
 ### Schema and versioning
 
