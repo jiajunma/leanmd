@@ -5,7 +5,7 @@ import { mkdtemp, readdir, readFile as readOutputFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
-import { migrateBlueprintFile, writeMigratedEntries } from "../src/blueprint.js";
+import { migrateBlueprintFile, migrateBlueprintPath, writeMigratedEntries } from "../src/blueprint.js";
 import { buildEntryContextBundle, buildEntryReviewBundle } from "../src/context.js";
 import { exportProject } from "../src/export.js";
 import { countActiveSorry } from "../src/lean.js";
@@ -65,6 +65,14 @@ test("migrate blueprint tex into entry markdown files", async () => {
   assert.match(migrated, /depends_on:/);
   assert.match(migrated, /main_decl: MyProject\.GroupTheory\.sylow_exists/);
   assert.match(migrated, /# Proof outline/);
+});
+
+test("migrate blueprint directory input", async () => {
+  const entries = await migrateBlueprintPath("test/fixtures/blueprint");
+  assert.equal(entries.length, 2);
+  const theorem = entries.find((entry) => entry.id === "thm:sylow_exists");
+  assert.ok(theorem);
+  assert.equal(theorem.cluster, "blueprint");
 });
 
 test("count active sorry excludes comments and strings", () => {

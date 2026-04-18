@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export interface MigratedEntry {
@@ -193,6 +193,65 @@ export async function migrateBlueprintFile(
   }
 
   return entries;
+}
+
+async function collectTexFiles(root: string): Promise<string[]> {
+  const files: string[] = [];
+
+  async function walk(dir: string): Promise<void> {
+    const items = await readdir(dir, { withFileTypes: true });
+    for (const item of items) {
+      const full = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        await walk(full);
+      } else if (item.isFile() && item.name.endsWith(".tex")) {
+        files.push(full);
+      }
+    }
+  }
+
+  await walk(root);
+  files.sort();
+  return files;
+}
+
+export async function migrateBlueprintPath(
+  sourcePath: string,
+  clusterOverride?: string,
+): Promise<MigratedEntry[]> {
+  const stat = await import("node:fs/promises").then((fs) => fs.stat(sourcePath));
+  const sourceFiles = stat.isDirectory() ? await collectTexFiles(sourcePath) : [sourcePath];
+  const all: MigratedEntry[] = [];
+
+  for (const file of sourceFiles) {
+    const cluster =
+      clusterOverride ??
+      path.basename(path.dirname(file)) ??
+      path.basename(file, path.extname(file));
+    const entries = await migrateBlueprintFile(file, cluster);
+    all.push(...entries);
+  }
+
+  const byId = new Map<string, MigratedEntry>();
+  for (const entry of all) {
+    byId.set(entry.id, entry);
+  }
+  for (const entry of all) {
+    entry.used_by = [];
+  }
+  for (const entry of all) {
+    for (const dep of entry.depends_on.informal) {
+      const target = byId.get(dep);
+      if (target) {
+        target.used_by.push(entry.id);
+      }
+    }
+  }
+  for (const entry of all) {
+    entry.used_by.sort();
+  }
+
+  return all;
 }
 
 export async function writeMigratedEntries(outDir: string, entries: MigratedEntry[]): Promise<void> {

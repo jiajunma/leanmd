@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { loadBenchmarkById, loadBenchmarks } from "./benchmarks.js";
-import { migrateBlueprintFile, writeMigratedEntries } from "./blueprint.js";
+import { migrateBlueprintPath, writeMigratedEntries } from "./blueprint.js";
 import { loadEntryContextBundle, loadEntryReviewBundle } from "./context.js";
 import { exportProject } from "./export.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
@@ -80,11 +80,11 @@ async function main(): Promise<void> {
 
   if (command === "migrate-blueprint") {
     if (!maybeOutDir) {
-      console.error("Usage: leanmd migrate-blueprint <tex-file> <out-dir>");
+      console.error("Usage: leanmd migrate-blueprint <tex-file-or-dir> <out-dir>");
       process.exitCode = 1;
       return;
     }
-    const entries = await migrateBlueprintFile(target);
+    const entries = await migrateBlueprintPath(target);
     await writeMigratedEntries(maybeOutDir, entries);
     console.log(
       JSON.stringify(
