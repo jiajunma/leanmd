@@ -311,6 +311,7 @@ Maintenance rule:
 - they are not intended to be hand-maintained in Markdown
 - narrative dependencies remain the author-facing dependency layer
 - if a narrative dependency has no matching formal dependency edge, that should be surfaced as a review warning rather than an immediate hard error
+- if a formal dependency appears important but is absent from the narrative dependency list, that should also be surfaced as a review warning
 
 Dependency direction rule:
 
