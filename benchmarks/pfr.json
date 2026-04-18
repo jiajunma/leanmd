@@ -1,0 +1,7 @@
+{
+  "id": "pfr",
+  "title": "PFR Conjecture",
+  "repository": "https://github.com/teorth/polymath-research-experience",
+  "published_blueprint": "https://teorth.github.io/pfr/blueprint/",
+  "notes": "Reference benchmark for blueprint migration and structural comparison."
+}
