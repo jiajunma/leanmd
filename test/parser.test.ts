@@ -93,7 +93,7 @@ test("build standalone site output", async () => {
   const registry = await buildSite("test/fixtures/project", outDir);
   assert.equal(registry.entries.length, 2);
   const generated = (await readdir(path.join(outDir, "generated"))).sort();
-  assert.deepEqual(generated, ["dep-graph.json", "registry.json", "status.json"]);
+  assert.deepEqual(generated, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "status.json"]);
   const indexHtml = await readOutputFile(path.join(outDir, "index.html"), "utf-8");
   assert.match(indexHtml, /Demo Project/);
   assert.match(indexHtml, /Open dependency graph/);
@@ -102,6 +102,8 @@ test("build standalone site output", async () => {
   const entryHtml = await readOutputFile(path.join(outDir, "entries", "thm_sylow_exists.html"), "utf-8");
   assert.match(entryHtml, /Sylow existence/);
   assert.match(entryHtml, /status: <strong>blocked<\/strong>/);
+  const reviewFiles = (await readdir(path.join(outDir, "generated", "entry-review"))).sort();
+  assert.deepEqual(reviewFiles, ["def_p_group.json", "thm_sylow_exists.json"]);
 });
 
 test("load benchmark manifests", async () => {

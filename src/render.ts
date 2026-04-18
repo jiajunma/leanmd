@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import MarkdownIt from "markdown-it";
+import { buildEntryContextBundle, buildEntryReviewBundle } from "./context.js";
 import { buildGraphData, buildRegistryData, buildStatusData } from "./export.js";
 import { buildRegistry } from "./registry.js";
 import type { Registry, RegistryEntry } from "./registry.js";
@@ -158,10 +159,14 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
   const entriesDir = path.join(outDir, "entries");
   const assetsDir = path.join(outDir, "assets");
   const generatedDir = path.join(outDir, "generated");
+  const contextDir = path.join(generatedDir, "entry-context");
+  const reviewDir = path.join(generatedDir, "entry-review");
 
   await mkdir(entriesDir, { recursive: true });
   await mkdir(assetsDir, { recursive: true });
   await mkdir(generatedDir, { recursive: true });
+  await mkdir(contextDir, { recursive: true });
+  await mkdir(reviewDir, { recursive: true });
 
   await writeFile(path.join(outDir, "index.html"), renderOverviewPage(registry), "utf-8");
   await writeFile(path.join(outDir, "graph.html"), renderGraphPage(registry), "utf-8");
@@ -171,6 +176,17 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
   for (const entry of registry.entries) {
     const fileName = entryOutputName(entry.document.frontMatter.id);
     await writeFile(path.join(entriesDir, fileName), renderEntryPage(entry), "utf-8");
+    const jsonFile = `${fileName.replace(/\.html$/, "")}.json`;
+    await writeFile(
+      path.join(contextDir, jsonFile),
+      JSON.stringify(buildEntryContextBundle(registry, entry.document.frontMatter.id), null, 2),
+      "utf-8",
+    );
+    await writeFile(
+      path.join(reviewDir, jsonFile),
+      JSON.stringify(buildEntryReviewBundle(registry, entry.document.frontMatter.id), null, 2),
+      "utf-8",
+    );
   }
 
   await writeFile(
