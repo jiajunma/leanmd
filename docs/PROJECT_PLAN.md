@@ -49,6 +49,7 @@ It should be optimized for non-linear exploration rather than forcing a linear c
 - Heavy validation should run through a narrow MCP-style server boundary to keep agent context clean.
 - the product should be a presentation system first, not a linear document compiler
 - default navigation should be graph-oriented rather than chapter-oriented
+- entry documents should be easy for coding agents to parse and rewrite
 
 ## 3A. Relationship To `leanblueprint`
 
@@ -122,6 +123,12 @@ md: GroupTheory/Sylow/exists.md
 status: formalized
 alignment_status: clean
 ```
+
+Agent-structure rule:
+
+- every entry should have a YAML-structured representation
+- coding-agent-facing workflows should rely on structured YAML fields rather than free-form prose parsing
+- Markdown may remain the human presentation surface, but entry data should be recoverable from YAML without heuristic scraping
 
 Suggested logical fields:
 
@@ -266,6 +273,7 @@ Important presentation rule:
 ## 6. Markdown Page Shape
 
 Markdown must be structured enough for AI checking.
+Entry data should be YAML-friendly for coding-agent workflows.
 
 Page-binding rule:
 
@@ -292,6 +300,12 @@ uses:
   - lem:orbit_stabilizer
 ---
 ```
+
+YAML-first rule:
+
+- entry metadata should live in explicit YAML fields
+- if richer structured entry packets are needed, YAML should be preferred over ad hoc custom text formats
+- longer prose sections may stay in Markdown, but the machine-critical skeleton should be YAML-structured
 
 Preferred fixed sections:
 
