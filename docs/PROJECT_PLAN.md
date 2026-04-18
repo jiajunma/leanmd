@@ -215,8 +215,7 @@ Current integration direction:
 
 - declaration scanning provides the stable baseline inventory
 - Lean-LSP analysis provides richer local semantic information when available
-- `jixia` provides deeper static-analysis data for declaration structure, symbol references, tactics, and proof states
-- the MVP should combine declaration scanning, Lean-LSP analysis, and `jixia` instead of relying on only one mechanism
+- the MVP should combine declaration scanning and Lean-LSP analysis instead of relying on only one mechanism
 
 The Lean-side exporter should provide:
 
@@ -236,14 +235,6 @@ Lean-LSP-backed analysis should be used for tasks such as:
 - extracting more precise dependency slices
 - relating helper lemmas to the main declaration through usage patterns
 - improving entry-local context selection for AI review
-
-`jixia`-backed analysis should be used for tasks such as:
-
-- extracting declaration-level structural data from Lean files
-- building richer symbol and reference graphs
-- inspecting elaboration and tactic traces where useful
-- exposing line-level proof states for cluster analysis and AI review support
-- improving automatic grouping of helper lemmas into proof clusters
 
 Important distinction:
 
@@ -389,7 +380,6 @@ The MCP layer should be responsible for narrow, explicit operations such as:
 - run structural alignment checks
 - query Lean-confirmed proof status
 - run entry-level review pipelines
-- query `jixia`-derived structural and proof-state data
 - return cached validation results
 
 Preferred property:
@@ -637,7 +627,6 @@ Responsible for:
 - running deterministic validation checks
 - serving cached dependency slices
 - reporting Lean-confirmed completion state
-- brokering access to `jixia` analysis results
 - keeping expensive project scans outside the main interaction context
 
 ## 13. CLI Surface
@@ -676,7 +665,6 @@ The first version should stay narrow.
 - nearby `.lean + .md` pairing
 - fixed Markdown template
 - Lean exporter
-- `jixia` integration
 - structural checker
 - entry-level context bundler
 - minimal AI alignment reviewer
@@ -776,10 +764,9 @@ Current MVP answer:
 
 ### Lean integration boundary
 
-- Current MVP direction: combine declaration scanning, Lean-LSP analysis, and `jixia`.
+- Current MVP direction: combine declaration scanning and Lean-LSP analysis.
 - We still need to decide how much metadata should require explicit author annotation.
 - We still need to decide which analyses must run inside Lean versus through LSP queries versus post-processing outside Lean.
-- We still need a fallback mode for projects where `jixia` is temporarily unavailable or version-mismatched.
 
 ### UI shape
 
@@ -828,12 +815,6 @@ Current MVP answer:
 - How should the tool behave when `Tectonic`, `dvisvgm`, or optional AI tooling is missing?
 - What should CI require versus what may remain optional in local development?
 
-### `jixia` operating constraints
-
-- How should the tool manage `jixia` and project Lean-version compatibility?
-- Should `jixia` outputs be cached per file, per commit, or per build artifact?
-- Which features should degrade gracefully when `jixia` cannot run?
-
 ## 17. Working Summary
 
 The current plan is to build:
@@ -848,7 +829,7 @@ The current plan is to build:
 - with proof completion confirmed from Lean rather than prose
 - with reusable AI skills for entry-local work
 - with an MCP-style validation layer to keep context clean
-- with `jixia` as a core analysis component alongside declaration scanning and Lean-LSP
+- with Lean-LSP as the primary semantic analysis layer alongside declaration scanning
 
 It should unify:
 
@@ -870,9 +851,8 @@ When implementation starts, the next concrete steps should be:
 2. define the exact JSON schema for exported entry records
 3. define the exact Markdown front matter and required sections
 4. define the Lean exporter interface
-5. define how `jixia` data is ingested, cached, and exposed
-6. define the alignment report schema
-7. define the skill interfaces and output schemas
-8. define the MCP server operations and payload schemas
-9. scaffold the CLI
-10. pick and wire the site generator
+5. define the alignment report schema
+6. define the skill interfaces and output schemas
+7. define the MCP server operations and payload schemas
+8. scaffold the CLI
+9. pick and wire the site generator
