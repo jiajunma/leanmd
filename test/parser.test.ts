@@ -102,10 +102,15 @@ test("build standalone site output", async () => {
   const indexHtml = await readOutputFile(path.join(outDir, "index.html"), "utf-8");
   assert.match(indexHtml, /Demo Project/);
   assert.match(indexHtml, /Open dependency graph/);
+  assert.match(indexHtml, /Open status summary/);
   const graphHtml = await readOutputFile(path.join(outDir, "graph.html"), "utf-8");
   assert.match(graphHtml, /Dependency Graph/);
   assert.match(graphHtml, /<svg /);
   assert.match(graphHtml, /Solid edges = formal, dashed edges = informal/);
+  const statusHtml = await readOutputFile(path.join(outDir, "status.html"), "utf-8");
+  assert.match(statusHtml, /Status Summary/);
+  assert.match(statusHtml, /<h2>blocked<\/h2>/);
+  assert.match(statusHtml, /thm:sylow_exists/);
   const entryHtml = await readOutputFile(path.join(outDir, "entries", "thm_sylow_exists.html"), "utf-8");
   assert.match(entryHtml, /Sylow existence/);
   assert.match(entryHtml, /status: <strong>blocked<\/strong>/);

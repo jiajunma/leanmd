@@ -82,6 +82,10 @@ function renderOverviewPage(registry: Registry): string {
   const introSections = Object.entries(registry.overview.sections)
     .map(([title, content]) => renderSection(title, content))
     .join("\n");
+  const statusCounts = new Map<string, number>();
+  for (const entry of registry.entries) {
+    statusCounts.set(entry.computedStatus, (statusCounts.get(entry.computedStatus) ?? 0) + 1);
+  }
   const entryList = registry.entries
     .map(
       (entry) =>
@@ -98,9 +102,16 @@ function renderOverviewPage(registry: Registry): string {
       <p>project id: <code>${escapeHtml(fm.project_id)}</code></p>
       <p>status: <strong>${escapeHtml(fm.status)}</strong></p>
       <p><a href="/graph.html">Open dependency graph</a></p>
+      <p><a href="/status.html">Open status summary</a></p>
     </header>
     <section>
       <h2>Entries</h2>
+      <p>
+        formalized: ${statusCounts.get("formalized") ?? 0},
+        incomplete: ${statusCounts.get("incomplete") ?? 0},
+        blocked: ${statusCounts.get("blocked") ?? 0},
+        missing: ${statusCounts.get("missing") ?? 0}
+      </p>
       <ul>${entryList}</ul>
     </section>
   `;
@@ -194,6 +205,44 @@ function renderGraphPage(registry: Registry): string {
   );
 }
 
+function renderStatusPage(registry: Registry): string {
+  const groups = new Map<string, RegistryEntry[]>();
+  for (const entry of registry.entries) {
+    const list = groups.get(entry.computedStatus) ?? [];
+    list.push(entry);
+    groups.set(entry.computedStatus, list);
+  }
+
+  const sections = ["formalized", "incomplete", "blocked", "missing"]
+    .map((status) => {
+      const entries = groups.get(status) ?? [];
+      const items =
+        entries.length > 0
+          ? entries
+              .map(
+                (entry) =>
+                  `<li><a href="/entries/${escapeHtml(entryOutputName(entry.document.frontMatter.id))}">${escapeHtml(
+                    entry.document.frontMatter.title,
+                  )}</a> <code>${escapeHtml(entry.document.frontMatter.id)}</code></li>`,
+              )
+              .join("\n")
+          : "<li><em>none</em></li>";
+      return `<section><h2>${escapeHtml(status)}</h2><ul>${items}</ul></section>`;
+    })
+    .join("\n");
+
+  return basePage(
+    `${registry.overview.frontMatter.title} Status`,
+    `
+      <header>
+        <h1>Status Summary</h1>
+        <p><a href="/index.html">Back to overview</a></p>
+      </header>
+      ${sections}
+    `,
+  );
+}
+
 const SITE_CSS = `
 body { font-family: sans-serif; margin: 0; background: #fcfcf7; color: #1f1f1a; }
 .page { max-width: 960px; margin: 0 auto; padding: 2rem; }
@@ -219,6 +268,7 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
 
   await writeFile(path.join(outDir, "index.html"), renderOverviewPage(registry), "utf-8");
   await writeFile(path.join(outDir, "graph.html"), renderGraphPage(registry), "utf-8");
+  await writeFile(path.join(outDir, "status.html"), renderStatusPage(registry), "utf-8");
   await writeFile(path.join(assetsDir, "site.css"), SITE_CSS, "utf-8");
 
   const graphData = buildGraphData(registry);
