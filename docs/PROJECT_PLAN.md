@@ -11,8 +11,10 @@ It is intended to be an AI-native operating layer for Lean formalization project
 - provide blueprint-style project structure
 - provide doc-gen-style code browsing
 - make it easy for AI to review whether natural language and Lean are aligned
+- act as a presentation system for the mathematical state of the project
 
 The tool should treat Lean projects as a collection of machine-checkable entry packets, not as a PDF-first book.
+It should be optimized for non-linear exploration rather than forcing a linear chapter-first reading order.
 
 ## 2. Problems With Existing Tools
 
@@ -45,6 +47,8 @@ The tool should treat Lean projects as a collection of machine-checkable entry p
 - Build up on `leanblueprint` wherever its existing abstractions are already correct.
 - AI workflows should be captured as reusable skills instead of being left as ad hoc prompting.
 - Heavy validation should run through a narrow MCP-style server boundary to keep agent context clean.
+- the product should be a presentation system first, not a linear document compiler
+- default navigation should be graph-oriented rather than chapter-oriented
 
 ## 3A. Relationship To `leanblueprint`
 
@@ -62,6 +66,7 @@ In practical terms, this project should be thought of as:
 - `leanblueprint` upgraded to expose a stronger machine-readable registry
 - `leanblueprint` upgraded to support AI-native review workflows
 - `leanblueprint` upgraded to coexist with declaration browsing in the style of `doc-gen`
+- `leanblueprint` upgraded from a linear blueprint view into a graph-driven presentation system
 
 ## 4. Main Object Model
 
@@ -72,7 +77,7 @@ An `Entry` represents one mathematical object such as:
 - a theorem
 - a definition
 - a proposition
-- a lemma when it deserves its own page and identity
+- a lemma
 
 Each entry should have a stable `id` and bind:
 
@@ -100,6 +105,12 @@ Important distinction:
 
 - `Entry` is the object that gets reviewed, displayed, and aligned
 - `Cluster` is an organizational grouping for nearby entries and helper code
+- ordinary lemmas are also entries, even if some views choose to visually de-emphasize them
+
+Default node model:
+
+- the main presentation graph should primarily emphasize two node kinds: definitions and theorems
+- lemma entries may still exist in the registry, but they may be visually secondary or collapsed in the default graph
 
 Suggested schema:
 
@@ -199,6 +210,59 @@ Lean comments should only contain local details such as:
 - local TODOs
 - explanation of a technical trick
 
+## 5A. Presentation Layers
+
+The project should present mathematics through three layers plus one overview layer.
+
+### 1. Overview / Introduction layer
+
+This layer explains:
+
+- the global logic of the project
+- the high-level strategy
+- how the main definitions and theorems fit together
+- why the project is organized the way it is
+
+This layer is closer to the introduction and roadmap of a paper.
+
+### 2. Literary / idea layer
+
+This layer records:
+
+- motivations
+- problem statements
+- high-level ideas
+- proof strategy sketches
+
+This is the most human-facing conceptual layer.
+
+### 3. Natural-language proof layer
+
+This layer records:
+
+- statements
+- proof outlines
+- proof explanations
+- key dependencies in human mathematical terms
+
+This layer may be AI-generated or AI-assisted, with human review and alignment.
+
+### 4. Lean proof layer
+
+This layer contains:
+
+- Lean declarations
+- local helper lemmas
+- formally checked proof code
+
+This is the programming / verification layer.
+
+Important presentation rule:
+
+- the system should make all four layers navigable from the same entry or cluster context
+- the overview layer should not be hidden behind the same template as ordinary entry pages
+- the overview / introduction layer should be the main entry point for the whole project presentation
+
 ## 6. Markdown Page Shape
 
 Markdown must be structured enough for AI checking.
@@ -208,6 +272,13 @@ Page-binding rule:
 - each Markdown page corresponds to exactly one entry
 - a theorem page may include proof content for that theorem
 - proof explanations for different entries should not be merged into one page
+
+Authoring-role rule:
+
+- humans are not expected to hand-write every proof detail
+- humans may contribute problems, ideas, and high-level strategies
+- AI may help generate natural-language proof text and Lean proof drafts
+- the system's responsibility is to align these layers and reflect real project status accurately
 
 Preferred front matter:
 
@@ -245,6 +316,7 @@ Required-section rule:
 - `Key dependencies` is a required section for every entry page
 - it may be temporarily sparse, but it must be present
 - this section is the primary home for narrative dependencies in the Markdown layer
+- a sparse or empty `Key dependencies` section should produce a warning rather than a hard error
 
 Narrative-dependency scope rule:
 
@@ -319,6 +391,7 @@ Maintenance rule:
 - narrative dependencies remain the author-facing dependency layer
 - if a narrative dependency has no matching formal dependency edge, that should be surfaced as a review warning rather than an immediate hard error
 - if a formal dependency appears important but is absent from the narrative dependency list, that should also be surfaced as a review warning
+- dependency mismatches should not fail MVP builds by default
 
 Dependency direction rule:
 
@@ -350,6 +423,7 @@ Status note:
 - for MVP, completion can be determined by checking the entry's associated Lean source file(s) for `sorry`
 - this is a source-text check, not a deeper proof analysis pass
 - to keep this check meaningful, each entry should have a clear associated main Lean file
+- `blocked` remains a valid flat primary status
 
 ## 8. Alignment Layer
 
@@ -367,6 +441,14 @@ The tool should support two kinds of checks.
 - dependency references resolve
 - no orphan objects
 
+Hard-error rule for MVP:
+
+- duplicate ids are hard errors
+- missing main Markdown pages are hard errors
+- missing main Lean files or bindings are hard errors
+- nonexistent bound declarations are hard errors
+- missing required sections are hard errors
+
 ### Semantic alignment checks
 
 - informal statement omits a Lean hypothesis
@@ -377,6 +459,12 @@ The tool should support two kinds of checks.
 - status mismatch between narrative and formal code
 
 The output should be machine-readable and entry-local.
+
+Warning rule for MVP:
+
+- dependency mismatches between narrative and formal views are warnings
+- sparse `Key dependencies` sections are warnings
+- alignment warnings should not fail builds by default in MVP
 
 Proof-completion status must be Lean-confirmed.
 
@@ -412,6 +500,7 @@ This bundle should power AI tasks such as:
 - draft informal statement from Lean theorem type
 - suggest formalization TODOs from the Markdown page
 - summarize a theorem and its dependencies
+- draft natural-language proof text from the idea layer and Lean-side information
 
 The system should also track staleness:
 
@@ -473,6 +562,7 @@ The MCP layer should be responsible for narrow, explicit operations such as:
 - run structural alignment checks
 - query Lean-confirmed proof status
 - run entry-level review pipelines
+- provide dependency-graph data
 - return cached validation results
 
 Preferred property:
@@ -494,6 +584,7 @@ The new tool should include both categories of functionality, but on top of one 
 - status tracking
 - open gaps / not-ready items
 - human-readable proof outlines
+- a project-level overview / introduction view
 
 ### Doc-gen-style features to keep
 
@@ -546,6 +637,7 @@ Reasons to prefer a lighter static site tool:
 - easy metadata handling via front matter
 - easy integration with generated JSON registries
 - easier to add custom theorem cards, dependency panels, and source widgets
+- easier to build graph-first, non-linear navigation
 
 LaTeX/PDF should only be optional export later, not the main workflow.
 
@@ -684,6 +776,7 @@ Responsible for:
 Responsible for:
 
 - project dashboard
+- overview / introduction pages
 - entry pages
 - declaration pages
 - dependency graph views
@@ -714,6 +807,17 @@ Graph scope rule:
 - external library objects such as Mathlib declarations should not become default graph nodes
 - external dependencies may still appear as metadata or details, but they should not dominate the main project graph
 
+Graph simplification rule:
+
+- lemma entries still exist in the registry and dependency model
+- the main dependency graph may hide or de-emphasize lemma nodes by default to reduce clutter
+- when lemma nodes are hidden, their contribution may still be reflected by arrows or collapsed paths
+
+Default navigation rule:
+
+- the primary navigation surface should be a DAG-style dependency graph
+- linear reading order should be available as a secondary convenience, not the main organizing principle
+
 Entry pages should also show:
 
 - direct dependencies
@@ -722,11 +826,28 @@ Entry pages should also show:
 - reverse dependencies when available
 - which downstream entries are affected by this entry when reverse data is available
 
+Cluster and project overviews should also show:
+
+- a high-level introduction
+- the logical roadmap of the project
+- the major definition/theorem nodes
+- current progress and blockers
+
+Project-entry rule:
+
+- the default landing page of the project should be the overview / introduction layer
+- from that landing page, users should be able to move into the graph, then into entries, then into Lean details
+
 Default presentation rule:
 
 - entry pages should foreground narrative dependencies first
 - formal dependencies should still be available, but as a secondary machine-derived view
 - if the UI offers a single default dependency lens, it should default to the narrative one
+
+Default graph rule:
+
+- the graph may display both narrative and formal edges together
+- if the UI offers a single default graph lens, it should default to the narrative dependency view
 
 Implementation note:
 
@@ -785,6 +906,14 @@ Command meanings:
 - `status`: show project-wide progress and drift
 - `mcp`: run the validation/context server for external AI tooling
 
+Current intended MCP operations:
+
+- `get_entry`
+- `get_entry_context`
+- `get_proof_status`
+- `check_alignment`
+- `get_dep_graph`
+
 ## 14. MVP Scope
 
 The first version should stay narrow.
@@ -805,10 +934,26 @@ The first version should stay narrow.
 - Lean-confirmed completion status
 - initial skills for alignment and context preparation
 - MCP-style validation/context server
+- overview / introduction layer
+- graph-first navigation
 
 Additional MVP implementation principle:
 
 - prefer adapting existing `leanblueprint` functionality over rewriting mature features from zero
+
+Chosen MVP defaults:
+
+- ordinary lemmas are entries
+- `blocked` remains a flat primary status
+- completion uses source-aware `sorry` checking
+- narrative dependencies live in Markdown
+- formal dependencies are autogenerated
+- dependency mismatches are warnings
+- local project entries dominate the main dependency graph
+- `VitePress` is the site generator
+- `KaTeX` is the default math renderer
+- TikZ is compiled to SVG at build time
+- the product is a graph-driven presentation system
 
 ### Explicit non-goals for MVP
 
@@ -924,6 +1069,8 @@ Current direction:
 
 - every entry must expose its direct dependencies
 - reverse dependency navigation is desirable but not required for MVP
+- primary navigation should be graph-first
+- overview pages should explain the large-scale roadmap, not just list entries
 
 ### Math rendering policy
 
@@ -931,11 +1078,19 @@ Current direction:
 - Which project-level macros should be centrally configured?
 - Do we need equation numbering in MVP or can it wait?
 
+Current decision:
+
+- use `KaTeX` by default
+
 ### TikZ workflow
 
 - Should TikZ live inline in Markdown or in separate asset files?
 - What cache key should determine whether a TikZ figure needs recompilation?
 - How should TikZ compilation failures be surfaced in CI and local development?
+
+Current decision:
+
+- TikZ is compiled to SVG at build time
 
 ### AI review policy
 
