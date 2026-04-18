@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { buildEntryContextBundle, buildEntryReviewBundle } from "./context.js";
 import type { Registry } from "./registry.js";
 import { buildRegistry } from "./registry.js";
 
@@ -66,11 +67,29 @@ export function buildStatusData(registry: Registry) {
 
 export async function exportProject(rootDir: string, outDir: string): Promise<Registry> {
   const registry = await buildRegistry(rootDir);
+  const contextDir = path.join(outDir, "entry-context");
+  const reviewDir = path.join(outDir, "entry-review");
   await mkdir(outDir, { recursive: true });
+  await mkdir(contextDir, { recursive: true });
+  await mkdir(reviewDir, { recursive: true });
 
   await writeFile(path.join(outDir, "registry.json"), JSON.stringify(buildRegistryData(registry), null, 2), "utf-8");
   await writeFile(path.join(outDir, "status.json"), JSON.stringify(buildStatusData(registry), null, 2), "utf-8");
   await writeFile(path.join(outDir, "dep-graph.json"), JSON.stringify(buildGraphData(registry), null, 2), "utf-8");
+
+  for (const entry of registry.entries) {
+    const fileName = `${entry.document.frontMatter.id}.json`.replaceAll("/", "_").replaceAll(":", "_");
+    await writeFile(
+      path.join(contextDir, fileName),
+      JSON.stringify(buildEntryContextBundle(registry, entry.document.frontMatter.id), null, 2),
+      "utf-8",
+    );
+    await writeFile(
+      path.join(reviewDir, fileName),
+      JSON.stringify(buildEntryReviewBundle(registry, entry.document.frontMatter.id), null, 2),
+      "utf-8",
+    );
+  }
 
   return registry;
 }

@@ -116,10 +116,17 @@ test("export machine-readable project artifacts", async () => {
   const registry = await exportProject("test/fixtures/project", outDir);
   assert.equal(registry.entries.length, 2);
   const files = (await readdir(outDir)).sort();
-  assert.deepEqual(files, ["dep-graph.json", "registry.json", "status.json"]);
+  assert.deepEqual(files, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "status.json"]);
   const graphJson = await readOutputFile(path.join(outDir, "dep-graph.json"), "utf-8");
   assert.match(graphJson, /"source": "informal"/);
   assert.match(graphJson, /"source": "formal"/);
+  const contextFiles = (await readdir(path.join(outDir, "entry-context"))).sort();
+  assert.deepEqual(contextFiles, ["def_p_group.json", "thm_sylow_exists.json"]);
+  const reviewJson = await readOutputFile(
+    path.join(outDir, "entry-review", "thm_sylow_exists.json"),
+    "utf-8",
+  );
+  assert.match(reviewJson, /"blocked_by": \[/);
 });
 
 test("build entry context and review bundles", async () => {
