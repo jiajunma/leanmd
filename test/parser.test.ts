@@ -103,6 +103,8 @@ test("build standalone site output", async () => {
   assert.match(indexHtml, /Demo Project/);
   assert.match(indexHtml, /Open dependency graph/);
   assert.match(indexHtml, /Open status summary/);
+  assert.match(indexHtml, /Clusters/);
+  assert.match(indexHtml, /clusters\/sylow\.html/);
   const graphHtml = await readOutputFile(path.join(outDir, "graph.html"), "utf-8");
   assert.match(graphHtml, /Dependency Graph/);
   assert.match(graphHtml, /<svg /);
@@ -111,6 +113,9 @@ test("build standalone site output", async () => {
   assert.match(statusHtml, /Status Summary/);
   assert.match(statusHtml, /<h2>blocked<\/h2>/);
   assert.match(statusHtml, /thm:sylow_exists/);
+  const clusterHtml = await readOutputFile(path.join(outDir, "clusters", "sylow.html"), "utf-8");
+  assert.match(clusterHtml, /Cluster: sylow/);
+  assert.match(clusterHtml, /Sylow existence/);
   const entryHtml = await readOutputFile(path.join(outDir, "entries", "thm_sylow_exists.html"), "utf-8");
   assert.match(entryHtml, /Sylow existence/);
   assert.match(entryHtml, /status: <strong>blocked<\/strong>/);

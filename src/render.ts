@@ -28,6 +28,10 @@ function entryOutputName(id: string): string {
   return `${id}.html`.replaceAll("/", "_").replaceAll(":", "_");
 }
 
+function clusterOutputName(cluster: string): string {
+  return `${cluster}.html`.replaceAll("/", "_").replaceAll(":", "_");
+}
+
 function basePage(title: string, body: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -94,6 +98,19 @@ function renderOverviewPage(registry: Registry): string {
         )}</a> <span class="status">${escapeHtml(entry.computedStatus)}</span></li>`,
     )
     .join("\n");
+  const clusterMap = new Map<string, RegistryEntry[]>();
+  for (const entry of registry.entries) {
+    const list = clusterMap.get(entry.document.frontMatter.cluster) ?? [];
+    list.push(entry);
+    clusterMap.set(entry.document.frontMatter.cluster, list);
+  }
+  const clusterList = [...clusterMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([cluster, entries]) =>
+        `<li><a href="/clusters/${escapeHtml(clusterOutputName(cluster))}">${escapeHtml(cluster)}</a> (${entries.length})</li>`,
+    )
+    .join("\n");
 
   const summary = `
     <header>
@@ -113,6 +130,10 @@ function renderOverviewPage(registry: Registry): string {
         missing: ${statusCounts.get("missing") ?? 0}
       </p>
       <ul>${entryList}</ul>
+    </section>
+    <section>
+      <h2>Clusters</h2>
+      <ul>${clusterList}</ul>
     </section>
   `;
 
@@ -243,6 +264,47 @@ function renderStatusPage(registry: Registry): string {
   );
 }
 
+function renderClusterPage(cluster: string, entries: RegistryEntry[]): string {
+  const statusCounts = new Map<string, number>();
+  for (const entry of entries) {
+    statusCounts.set(entry.computedStatus, (statusCounts.get(entry.computedStatus) ?? 0) + 1);
+  }
+
+  const entryItems = entries
+    .map(
+      (entry) =>
+        `<li><a href="/entries/${escapeHtml(entryOutputName(entry.document.frontMatter.id))}">${escapeHtml(
+          entry.document.frontMatter.title,
+        )}</a> <code>${escapeHtml(entry.document.frontMatter.id)}</code> <span class="status">${escapeHtml(
+          entry.computedStatus,
+        )}</span></li>`,
+    )
+    .join("\n");
+
+  return basePage(
+    `${cluster} Cluster`,
+    `
+      <header>
+        <h1>Cluster: ${escapeHtml(cluster)}</h1>
+        <p><a href="/index.html">Back to overview</a></p>
+      </header>
+      <section>
+        <h2>Summary</h2>
+        <p>
+          formalized: ${statusCounts.get("formalized") ?? 0},
+          incomplete: ${statusCounts.get("incomplete") ?? 0},
+          blocked: ${statusCounts.get("blocked") ?? 0},
+          missing: ${statusCounts.get("missing") ?? 0}
+        </p>
+      </section>
+      <section>
+        <h2>Entries</h2>
+        <ul>${entryItems}</ul>
+      </section>
+    `,
+  );
+}
+
 const SITE_CSS = `
 body { font-family: sans-serif; margin: 0; background: #fcfcf7; color: #1f1f1a; }
 .page { max-width: 960px; margin: 0 auto; padding: 2rem; }
@@ -255,12 +317,14 @@ section { margin-top: 2rem; }
 export async function buildSite(rootDir: string, outDir: string): Promise<Registry> {
   const registry = await buildRegistry(rootDir);
   const entriesDir = path.join(outDir, "entries");
+  const clustersDir = path.join(outDir, "clusters");
   const assetsDir = path.join(outDir, "assets");
   const generatedDir = path.join(outDir, "generated");
   const contextDir = path.join(generatedDir, "entry-context");
   const reviewDir = path.join(generatedDir, "entry-review");
 
   await mkdir(entriesDir, { recursive: true });
+  await mkdir(clustersDir, { recursive: true });
   await mkdir(assetsDir, { recursive: true });
   await mkdir(generatedDir, { recursive: true });
   await mkdir(contextDir, { recursive: true });
@@ -284,6 +348,20 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
     await writeFile(
       path.join(reviewDir, jsonFile),
       JSON.stringify(buildEntryReviewBundle(registry, entry.document.frontMatter.id), null, 2),
+      "utf-8",
+    );
+  }
+
+  const clusterMap = new Map<string, RegistryEntry[]>();
+  for (const entry of registry.entries) {
+    const list = clusterMap.get(entry.document.frontMatter.cluster) ?? [];
+    list.push(entry);
+    clusterMap.set(entry.document.frontMatter.cluster, list);
+  }
+  for (const [cluster, entries] of clusterMap.entries()) {
+    await writeFile(
+      path.join(clustersDir, clusterOutputName(cluster)),
+      renderClusterPage(cluster, entries),
       "utf-8",
     );
   }
