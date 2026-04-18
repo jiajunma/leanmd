@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { loadBenchmarkById, loadBenchmarks } from "./benchmarks.js";
 import { migrateBlueprintPath, writeMigratedEntries } from "./blueprint.js";
+import { compareBlueprintPathToProject } from "./compare.js";
 import { loadEntryContextBundle, loadEntryReviewBundle } from "./context.js";
 import { exportProject } from "./export.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
@@ -13,7 +14,7 @@ async function main(): Promise<void> {
   const [, , command, target, maybeOutDir] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|context|review|export|build|migrate-blueprint|benchmarks|benchmark> <path> [arg]");
+    console.error("Usage: leanmd <entry|overview|check|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark> <path> [arg]");
     process.exitCode = 1;
     return;
   }
@@ -98,6 +99,17 @@ async function main(): Promise<void> {
         2,
       ),
     );
+    return;
+  }
+
+  if (command === "compare-blueprint") {
+    if (!maybeOutDir) {
+      console.error("Usage: leanmd compare-blueprint <blueprint-tex-or-dir> <project-root>");
+      process.exitCode = 1;
+      return;
+    }
+    const summary = await compareBlueprintPathToProject(target, maybeOutDir);
+    console.log(JSON.stringify(summary, null, 2));
     return;
   }
 

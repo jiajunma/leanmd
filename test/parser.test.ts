@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { migrateBlueprintFile, migrateBlueprintPath, writeMigratedEntries } from "../src/blueprint.js";
+import { compareBlueprintPathToProject } from "../src/compare.js";
 import { buildEntryContextBundle, buildEntryReviewBundle } from "../src/context.js";
 import { exportProject } from "../src/export.js";
 import { countActiveSorry } from "../src/lean.js";
@@ -132,4 +133,14 @@ test("build entry context and review bundles", async () => {
   const review = buildEntryReviewBundle(result.registry, "thm:sylow_exists");
   assert.equal(review.issues.errors.length, 0);
   assert.equal(review.issues.warnings.length, 0);
+});
+
+test("compare migrated blueprint entries to project registry", async () => {
+  const summary = await compareBlueprintPathToProject("test/fixtures/blueprint", "test/fixtures/project");
+  assert.equal(summary.source_entry_count, 2);
+  assert.equal(summary.target_entry_count, 2);
+  assert.deepEqual(summary.missing_in_target, []);
+  assert.deepEqual(summary.missing_in_source, []);
+  assert.equal(summary.kind_counts.source.theorem, 1);
+  assert.equal(summary.kind_counts.target.definition, 1);
 });
