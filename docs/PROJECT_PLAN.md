@@ -699,6 +699,12 @@ Graph edge-style rule:
 - solid edges represent formal dependencies discovered from Lean analysis
 - when both relations exist between the same two entries, the graph should make that visible rather than silently collapsing them
 
+Graph scope rule:
+
+- the default dependency graph should show only this project's own entries
+- external library objects such as Mathlib declarations should not become default graph nodes
+- external dependencies may still appear as metadata or details, but they should not dominate the main project graph
+
 Entry pages should also show:
 
 - direct dependencies
