@@ -246,6 +246,13 @@ Required-section rule:
 - it may be temporarily sparse, but it must be present
 - this section is the primary home for narrative dependencies in the Markdown layer
 
+Narrative-dependency scope rule:
+
+- `Key dependencies` should primarily list this project's own entries
+- external library theorems should normally not be listed as narrative dependencies
+- an external theorem may be listed only when it is a major theorem that is genuinely part of the human mathematical story
+- ordinary library lemmas should stay out of the main narrative dependency list
+
 Rationale:
 
 - AI can compare field-to-field instead of prose-to-proof wholesale.
