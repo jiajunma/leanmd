@@ -93,6 +93,7 @@ Markdown-page rule:
 - one Markdown page should not document multiple entries
 - if the entry is a theorem, its page may include the theorem statement, proof outline, proof idea, and formalization notes
 - the Markdown page is the human-facing narrative for that one entry
+- the primary entry document should be a single `.md` file with a YAML front matter header
 
 The project should also support a secondary organizational unit: `Cluster`.
 
@@ -128,7 +129,8 @@ Agent-structure rule:
 
 - every entry should have a YAML-structured representation
 - coding-agent-facing workflows should rely on structured YAML fields rather than free-form prose parsing
-- Markdown may remain the human presentation surface, but entry data should be recoverable from YAML without heuristic scraping
+- the YAML structure should live in the front matter of the entry's Markdown file
+- Markdown remains the human presentation surface, but entry data should be recoverable from front matter without heuristic scraping
 
 Suggested logical fields:
 
@@ -310,7 +312,8 @@ uses:
 YAML-first rule:
 
 - entry metadata should live in explicit YAML fields
-- if richer structured entry packets are needed, YAML should be preferred over ad hoc custom text formats
+- these YAML fields should normally live in the front matter of the entry's Markdown file
+- if richer structured entry packets are needed, YAML should still be preferred over ad hoc custom text formats
 - longer prose sections may stay in Markdown, but the machine-critical skeleton should be YAML-structured
 
 Preferred fixed sections:
