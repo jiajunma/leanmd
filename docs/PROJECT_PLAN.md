@@ -145,7 +145,8 @@ Granularity rule:
 
 The current preferred direction is:
 
-- one Lean file or one small Lean directory for a cluster
+- one small Lean directory for a cluster
+- one main Lean file per entry inside that cluster
 - one Markdown page per entry
 - Lean comments only for local technical notes
 
@@ -156,9 +157,9 @@ GroupTheory/
   Sylow/
     cluster/
       helpers.lean
-      sylow_exists.lean
+      thm_sylow_exists.lean
       sylow_exists.md
-      sylow_conjugacy.lean
+      thm_sylow_conjugacy.lean
       sylow_conjugacy.md
 ```
 
@@ -169,6 +170,7 @@ Why this layout:
 - AI can easily map files by path and id.
 - Drift detection is easier.
 - related entries can share one local proof area without collapsing into one giant narrative page
+- completion status can be checked cheaply from the entry's own Lean file
 
 We explicitly do **not** want to put the entire natural-language proof into Lean comments.
 
@@ -279,6 +281,9 @@ Status note:
 
 - keep the primary status model flat and simple
 - do not introduce separate proof/prose/alignment status machines as first-class business states in MVP
+- for MVP, completion can be determined by checking the entry's associated Lean source file(s) for `sorry`
+- this is a source-text check, not a deeper proof analysis pass
+- to keep this check meaningful, each entry should have a clear associated main Lean file
 
 ## 8. Alignment Layer
 
@@ -311,10 +316,11 @@ Proof-completion status must be Lean-confirmed.
 
 That means:
 
-- if a theorem still contains `sorry` or another incomplete marker, it is not complete
+- if the entry's associated Lean source still contains `sorry`, it is not complete
 - if a theorem depends on incomplete results, that should be visible in status
 - Markdown may not mark an entry as completed against Lean evidence
-- the default completion criterion for MVP is `sorry-free`
+- the default completion criterion for MVP is a source-text `sorry` check on the entry's Lean file(s)
+- implementation should avoid obvious false positives from comments or string literals
 
 ## 9. AI-Native Workflow
 
@@ -581,6 +587,8 @@ Responsible for:
 - extracting completion status from Lean code
 - detecting incomplete declarations or incomplete dependency chains
 
+For MVP, completion-status extraction may be implemented as a source scan over the entry's associated Lean file(s).
+
 ### 3. Markdown Sync
 
 Responsible for:
@@ -748,8 +756,8 @@ Working interpretation:
 
 Current MVP answer:
 
-- `formalized` means `sorry-free`
-- `incomplete` means not `sorry-free`
+- `formalized` means the entry's associated Lean file(s) contain no active `sorry`
+- `incomplete` means the entry's associated Lean file(s) still contain active `sorry`
 - `blocked` is derived from incomplete dependencies
 - alignment staleness is tracked separately from proof completion
 
@@ -766,6 +774,7 @@ Current MVP answer:
 - We still need to decide how large a cluster may become before it should be split.
 - We still need precise rules for when a helper lemma deserves its own entry rather than remaining auxiliary code inside a cluster.
 - We still need precise mapping rules from multi-file clusters to multiple entry pages.
+- Completion checking works best when each entry has its own main Lean file even inside a shared cluster directory.
 
 ### Schema and versioning
 
