@@ -190,7 +190,7 @@ Granularity rule:
 
 The current preferred direction is:
 
-- one small Lean directory for a cluster
+- one ordinary Lean directory for a local topic area
 - one main Lean file per entry inside that cluster
 - one Markdown page per entry
 - Lean comments only for local technical notes
@@ -207,12 +207,11 @@ Example:
 ```text
 GroupTheory/
   Sylow/
-    cluster/
-      helpers.lean
-      thm_sylow_exists.lean
-      sylow_exists.md
-      thm_sylow_conjugacy.lean
-      sylow_conjugacy.md
+    helpers.lean
+    thm_sylow_exists.lean
+    sylow_exists.md
+    thm_sylow_conjugacy.lean
+    sylow_conjugacy.md
 ```
 
 Why this layout:
@@ -225,6 +224,7 @@ Why this layout:
 - completion status can be checked cheaply from the entry's own Lean file
 - each entry's completion status can be attributed cleanly because unrelated entries are kept out of its main Lean file
 - each entry's narrative stays cleanly bound to one Markdown page
+- cluster membership can stay as metadata instead of forcing another directory layer
 
 We explicitly do **not** want to put the entire natural-language proof into Lean comments.
 
@@ -348,7 +348,7 @@ depends_on:
   formal: []
 used_by: []
 lean:
-  main_file: GroupTheory/Sylow/cluster/thm_sylow_exists.lean
+  main_file: GroupTheory/Sylow/thm_sylow_exists.lean
   main_decl: MyProject.GroupTheory.sylow_exists
 ---
 ```
@@ -371,6 +371,7 @@ Current naming direction:
 - prefer `cluster` over `cluster_id` in front matter for brevity
 - prefer `lean.main_file` and `lean.main_decl` for clarity
 - keep Lean binding nested under `lean` so pre-formalization entries can omit the whole block cleanly
+- keep `cluster` as front-matter metadata rather than a required filesystem layer
 
 Preferred fixed sections:
 
