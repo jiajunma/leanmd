@@ -81,6 +81,13 @@ Each entry should have a stable `id` and bind:
 - zero or more nearby helper declarations in its local proof context
 - structured metadata for project management
 
+Markdown-page rule:
+
+- each entry has exactly one primary Markdown page
+- one Markdown page should not document multiple entries
+- if the entry is a theorem, its page may include the theorem statement, proof outline, proof idea, and formalization notes
+- the Markdown page is the human-facing narrative for that one entry
+
 The project should also support a secondary organizational unit: `Cluster`.
 
 A `Cluster` is:
@@ -179,6 +186,7 @@ Why this layout:
 - related entries can share one local proof area without collapsing into one giant narrative page
 - completion status can be checked cheaply from the entry's own Lean file
 - each entry's completion status can be attributed cleanly because unrelated entries are kept out of its main Lean file
+- each entry's narrative stays cleanly bound to one Markdown page
 
 We explicitly do **not** want to put the entire natural-language proof into Lean comments.
 
@@ -192,6 +200,12 @@ Lean comments should only contain local details such as:
 ## 6. Markdown Page Shape
 
 Markdown must be structured enough for AI checking.
+
+Page-binding rule:
+
+- each Markdown page corresponds to exactly one entry
+- a theorem page may include proof content for that theorem
+- proof explanations for different entries should not be merged into one page
 
 Preferred front matter:
 
