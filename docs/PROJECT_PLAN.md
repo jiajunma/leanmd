@@ -310,6 +310,7 @@ Maintenance rule:
 - formal dependencies are generated automatically from Lean-side analysis
 - they are not intended to be hand-maintained in Markdown
 - narrative dependencies remain the author-facing dependency layer
+- if a narrative dependency has no matching formal dependency edge, that should be surfaced as a review warning rather than an immediate hard error
 
 Dependency direction rule:
 
