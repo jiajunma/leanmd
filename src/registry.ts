@@ -1,7 +1,10 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { countActiveSorryInFile, fileExists } from "./lean.js";
-import { loadFormalDependencyOverrides } from "./lsp.js";
+import {
+  overrideFormalDependencyProvider,
+  restrictFormalDependenciesToKnownIds,
+} from "./lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import type {
   EntryStatus,
@@ -169,10 +172,14 @@ function computeStatus(
 
 export async function buildRegistry(rootDir: string): Promise<Registry> {
   const overview = await loadOverview(rootDir);
-  const [entryDocs, formalOverrides] = await Promise.all([
+  const [entryDocs, rawFormalOverrides] = await Promise.all([
     loadEntries(rootDir),
-    loadFormalDependencyOverrides(rootDir),
+    overrideFormalDependencyProvider.load(rootDir),
   ]);
+  const formalOverrides = restrictFormalDependenciesToKnownIds(
+    rawFormalOverrides,
+    entryDocs.map((document) => document.frontMatter.id),
+  );
   const normalizedDocs = entryDocs.map((document) => {
     const override = formalOverrides[document.frontMatter.id];
     if (!override) {

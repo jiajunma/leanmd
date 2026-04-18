@@ -6,6 +6,10 @@ export interface FormalDependencyOverrides {
   [entryId: string]: string[];
 }
 
+export interface FormalDependencyProvider {
+  load(rootDir: string): Promise<FormalDependencyOverrides>;
+}
+
 export async function loadFormalDependencyOverrides(rootDir: string): Promise<FormalDependencyOverrides> {
   const overridePath = path.join(rootDir, ".leanmd", "formal-deps.json");
   if (!(await fileExists(overridePath))) {
@@ -28,3 +32,21 @@ export async function loadFormalDependencyOverrides(rootDir: string): Promise<Fo
 
   return result;
 }
+
+export function restrictFormalDependenciesToKnownIds(
+  overrides: FormalDependencyOverrides,
+  knownIds: Iterable<string>,
+): FormalDependencyOverrides {
+  const known = new Set(knownIds);
+  const filtered: FormalDependencyOverrides = {};
+
+  for (const [entryId, deps] of Object.entries(overrides)) {
+    filtered[entryId] = deps.filter((dep) => known.has(dep));
+  }
+
+  return filtered;
+}
+
+export const overrideFormalDependencyProvider: FormalDependencyProvider = {
+  load: loadFormalDependencyOverrides,
+};

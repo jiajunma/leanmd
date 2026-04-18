@@ -1,5 +1,6 @@
 {
   "thm:sylow_exists": [
-    "def:p_group"
+    "def:p_group",
+    "Mathlib.GroupTheory.ExternalBigTheorem"
   ]
 }
