@@ -211,6 +211,12 @@ Rationale:
 
 Lean should not only provide source code. It should export structured data.
 
+Current integration direction:
+
+- declaration scanning provides the stable baseline inventory
+- Lean-LSP analysis provides richer local semantic information when available
+- the MVP should combine both instead of relying on only one mechanism
+
 The Lean-side exporter should provide:
 
 - declaration name
@@ -222,6 +228,13 @@ The Lean-side exporter should provide:
 - external declarations used
 - tags/status if present
 - optional theorem-level metadata hooks
+
+Lean-LSP-backed analysis should be used for tasks such as:
+
+- finding declaration ranges and local references
+- extracting more precise dependency slices
+- relating helper lemmas to the main declaration through usage patterns
+- improving theorem-local context selection for AI review
 
 Important distinction:
 
@@ -751,9 +764,9 @@ Current MVP answer:
 
 ### Lean integration boundary
 
-- Should the Lean exporter work through custom attributes, docstrings, environment extensions, or pure declaration scanning?
-- How much information can be extracted reliably from Lean alone without extra author annotations?
-- Which parts of status and dependency analysis should happen inside Lean versus outside Lean?
+- Current MVP direction: combine declaration scanning with Lean-LSP analysis.
+- We still need to decide how much metadata should require explicit author annotation.
+- We still need to decide which analyses must run inside Lean versus through LSP queries versus post-processing outside Lean.
 
 ### UI shape
 
