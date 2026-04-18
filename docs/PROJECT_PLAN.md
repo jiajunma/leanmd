@@ -7,7 +7,7 @@
 It is intended to be an AI-native operating layer for Lean formalization projects:
 
 - organize entry-level mathematical narratives
-- connect each narrative entry to a Lean declaration
+- connect each entry to a Lean declaration when formalization exists
 - provide blueprint-style project structure
 - provide doc-gen-style code browsing
 - make it easy for AI to review whether natural language and Lean are aligned
@@ -338,15 +338,15 @@ Required-section rule:
 
 - `Key dependencies` is a required section for every entry page
 - it may be temporarily sparse, but it must be present
-- this section is the primary home for narrative dependencies in the Markdown layer
+- this section is the primary home for informal dependencies in the Markdown layer
 - a sparse or empty `Key dependencies` section should produce a warning rather than a hard error
 
-Narrative-dependency scope rule:
+Informal-dependency scope rule:
 
 - `Key dependencies` should primarily list this project's own entries
-- external library theorems should normally not be listed as narrative dependencies
+- external library theorems should normally not be listed as informal dependencies
 - an external theorem may be listed only when it is a major theorem that is genuinely part of the human mathematical story
-- ordinary library lemmas should stay out of the main narrative dependency list
+- ordinary library lemmas should stay out of the main informal dependency list
 
 Rationale:
 
@@ -391,19 +391,19 @@ Important distinction:
 
 - `structural deps`: noisy kernel-level or elaboration-level dependencies
 - `semantic deps`: declarations a human would cite in the proof story
-- `narrative deps`: dependencies that should appear in the Markdown page
+- `informal deps`: dependencies that should appear in the Markdown page
 
-The tool should focus on `semantic deps` and `narrative deps`, not dump raw dependency noise into the UI.
+The tool should focus on `semantic deps` and `informal deps`, not dump raw dependency noise into the UI.
 
 Current dependency model:
 
-- each entry may expose a narrative dependency list
+- each entry may expose an informal dependency list
 - each entry may also expose a formal dependency list discovered from Lean analysis
 - these two lists serve different purposes and should not be collapsed prematurely
 
 Working interpretation:
 
-- `narrative deps` are the dependencies the author wants to explain in natural language
+- `informal deps` are the dependencies the author wants to explain in natural language
 - `formal deps` are the dependencies Lean-LSP can discover from the formal code
 - mismatch between the two can be useful review information
 
@@ -411,15 +411,15 @@ Maintenance rule:
 
 - formal dependencies are generated automatically from Lean-side analysis
 - they are not intended to be hand-maintained in Markdown
-- narrative dependencies remain the author-facing dependency layer
-- if a narrative dependency has no matching formal dependency edge, that should be surfaced as a review warning rather than an immediate hard error
-- if a formal dependency appears important but is absent from the narrative dependency list, that should also be surfaced as a review warning
+- informal dependencies remain the author-facing dependency layer
+- if an informal dependency has no matching formal dependency edge, that should be surfaced as a review warning rather than an immediate hard error
+- if a formal dependency appears important but is absent from the informal dependency list, that should also be surfaced as a review warning
 - dependency mismatches should not fail MVP builds by default
 
 Dependency direction rule:
 
 - each entry should expose the entries it depends on
-- this may include both narrative dependencies and formal dependencies
+- this may include both informal dependencies and formal dependencies
 - `used_by` is optional but desirable when it can be computed cheaply and accurately
 - reverse dependency navigation is allowed and recommended when available
 - the MVP hard requirement is outgoing dependency information
@@ -479,13 +479,13 @@ Hard-error rule for MVP:
 - informal statement weakens the conclusion
 - notation mismatch
 - proof outline mentions a lemma not reflected in dependencies
-- status mismatch between narrative and formal code
+- status mismatch between informal and formal code
 
 The output should be machine-readable and entry-local.
 
 Warning rule for MVP:
 
-- dependency mismatches between narrative and formal views are warnings
+- dependency mismatches between informal and formal views are warnings
 - sparse `Key dependencies` sections are warnings
 - alignment warnings should not fail builds by default in MVP
 
@@ -759,7 +759,7 @@ Responsible for:
 
 Dependency metadata should be able to distinguish:
 
-- narrative dependencies
+- informal dependencies
 - formal dependencies
 - optional reverse dependencies
 
@@ -814,13 +814,13 @@ The graph should support:
 - entry-to-entry dependencies
 - entry-to-declaration links where useful
 - filtering local vs external dependencies
-- switching between narrative and formal dependency views when both are available
+- switching between informal and formal dependency views when both are available
 - showing incomplete upstream blockers
 - showing which entries are fully Lean-confirmed
 
 Graph edge-style rule:
 
-- dashed edges represent narrative dependencies from the human-facing entry description
+- dashed edges represent informal dependencies from the human-facing informal description
 - solid edges represent formal dependencies discovered from Lean analysis
 - when both relations exist between the same two entries, the graph should make that visible rather than silently collapsing them
 
@@ -844,7 +844,7 @@ Default navigation rule:
 Entry pages should also show:
 
 - direct dependencies
-- narrative dependencies and formal dependencies as distinct views when both are available
+- informal dependencies and formal dependencies as distinct views when both are available
 - which incomplete entries block this entry
 - reverse dependencies when available
 - which downstream entries are affected by this entry when reverse data is available
@@ -863,14 +863,14 @@ Project-entry rule:
 
 Default presentation rule:
 
-- entry pages should foreground narrative dependencies first
+- entry pages should foreground informal dependencies first
 - formal dependencies should still be available, but as a secondary machine-derived view
-- if the UI offers a single default dependency lens, it should default to the narrative one
+- if the UI offers a single default dependency lens, it should default to the informal one
 
 Default graph rule:
 
-- the graph may display both narrative and formal edges together
-- if the UI offers a single default graph lens, it should default to the narrative dependency view
+- the graph may display both informal and formal edges together
+- if the UI offers a single default graph lens, it should default to the informal dependency view
 
 Implementation note:
 
@@ -969,7 +969,7 @@ Chosen MVP defaults:
 - ordinary lemmas are entries
 - `blocked` remains a flat primary status
 - completion uses source-aware `sorry` checking
-- narrative dependencies live in Markdown
+- informal dependencies live in Markdown
 - formal dependencies are autogenerated
 - dependency mismatches are warnings
 - local project entries dominate the main dependency graph
@@ -1075,7 +1075,7 @@ Current MVP answer:
 - Current MVP direction: combine declaration scanning and Lean-LSP analysis.
 - We still need to decide how much metadata should require explicit author annotation.
 - We still need to decide which analyses must run inside Lean versus through LSP queries versus post-processing outside Lean.
-- Formal dependency discovery should come from Lean-side analysis, while narrative dependency lists may come from Markdown or curated metadata.
+- Formal dependency discovery should come from Lean-side analysis, while informal dependency lists may come from Markdown or curated metadata.
 
 ### UI shape
 
