@@ -305,6 +305,12 @@ Working interpretation:
 - `formal deps` are the dependencies Lean-LSP can discover from the formal code
 - mismatch between the two can be useful review information
 
+Maintenance rule:
+
+- formal dependencies are generated automatically from Lean-side analysis
+- they are not intended to be hand-maintained in Markdown
+- narrative dependencies remain the author-facing dependency layer
+
 Dependency direction rule:
 
 - each entry should expose the entries it depends on
