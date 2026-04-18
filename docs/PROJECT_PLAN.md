@@ -715,6 +715,12 @@ Entry pages should also show:
 - reverse dependencies when available
 - which downstream entries are affected by this entry when reverse data is available
 
+Default presentation rule:
+
+- entry pages should foreground narrative dependencies first
+- formal dependencies should still be available, but as a secondary machine-derived view
+- if the UI offers a single default dependency lens, it should default to the narrative one
+
 Implementation note:
 
 - if `leanblueprint` already has a working dependency-graph pipeline, the project should adapt that pipeline before considering a rewrite
