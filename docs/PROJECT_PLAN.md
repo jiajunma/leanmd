@@ -287,9 +287,22 @@ Important distinction:
 
 The tool should focus on `semantic deps` and `narrative deps`, not dump raw dependency noise into the UI.
 
+Current dependency model:
+
+- each entry may expose a narrative dependency list
+- each entry may also expose a formal dependency list discovered from Lean analysis
+- these two lists serve different purposes and should not be collapsed prematurely
+
+Working interpretation:
+
+- `narrative deps` are the dependencies the author wants to explain in natural language
+- `formal deps` are the dependencies Lean-LSP can discover from the formal code
+- mismatch between the two can be useful review information
+
 Dependency direction rule:
 
 - each entry should expose the entries it depends on
+- this may include both narrative dependencies and formal dependencies
 - `used_by` is optional but desirable when it can be computed cheaply and accurately
 - reverse dependency navigation is allowed and recommended when available
 - the MVP hard requirement is outgoing dependency information
@@ -608,6 +621,12 @@ Responsible for:
 - dependency metadata
 - proof-status metadata derived from Lean
 
+Dependency metadata should be able to distinguish:
+
+- narrative dependencies
+- formal dependencies
+- optional reverse dependencies
+
 ### 2. Lean Exporter
 
 Responsible for:
@@ -658,12 +677,14 @@ The graph should support:
 - entry-to-entry dependencies
 - entry-to-declaration links where useful
 - filtering local vs external dependencies
+- switching between narrative and formal dependency views when both are available
 - showing incomplete upstream blockers
 - showing which entries are fully Lean-confirmed
 
 Entry pages should also show:
 
 - direct dependencies
+- narrative dependencies and formal dependencies as distinct views when both are available
 - which incomplete entries block this entry
 - reverse dependencies when available
 - which downstream entries are affected by this entry when reverse data is available
@@ -786,6 +807,7 @@ Working interpretation:
 - `semantic_deps` means the declarations that matter in the human mathematical story of an entry
 - these are not all raw implementation dependencies
 - these are the definitions and lemmas that a mathematician or reviewer would naturally cite when explaining the proof
+- in practice, the project may keep both an author-facing dependency list and an LSP-discovered dependency list
 
 ### Completion-status policy
 
@@ -846,6 +868,7 @@ Current MVP answer:
 - Current MVP direction: combine declaration scanning and Lean-LSP analysis.
 - We still need to decide how much metadata should require explicit author annotation.
 - We still need to decide which analyses must run inside Lean versus through LSP queries versus post-processing outside Lean.
+- Formal dependency discovery should come from Lean-side analysis, while narrative dependency lists may come from Markdown or curated metadata.
 
 ### UI shape
 
