@@ -330,6 +330,45 @@ YAML-first rule:
 - if richer structured entry packets are needed, YAML should still be preferred over ad hoc custom text formats
 - longer prose sections may stay in Markdown, but the machine-critical skeleton should be YAML-structured
 
+Current entry front-matter draft:
+
+```yaml
+---
+id: thm:sylow_exists
+kind: theorem
+title: Sylow existence
+cluster: sylow
+status: incomplete
+depends_on:
+  informal:
+    - def:p_group
+    - thm:orbit_stabilizer
+  formal: []
+used_by: []
+lean:
+  main_file: GroupTheory/Sylow/cluster/thm_sylow_exists.lean
+  main_decl: MyProject.GroupTheory.sylow_exists
+---
+```
+
+Field intent:
+
+- `id`: stable entry identifier
+- `kind`: one of theorem / definition / lemma / proposition
+- `title`: human-facing title
+- `cluster`: lightweight cluster name
+- `status`: flat project status
+- `depends_on.informal`: human-facing key dependencies
+- `depends_on.formal`: machine-generated formal dependencies
+- `used_by`: optional reverse dependencies
+- `lean`: optional block, present when Lean formalization exists
+
+Current naming direction:
+
+- prefer `cluster` over `cluster_id` in front matter for brevity
+- prefer `lean.main_file` and `lean.main_decl` for clarity
+- keep Lean binding nested under `lean` so pre-formalization entries can omit the whole block cleanly
+
 Preferred fixed sections:
 
 ```md
@@ -354,6 +393,34 @@ Required-section rule:
 - it may be temporarily sparse, but it must be present
 - this section is the primary home for informal dependencies in the Markdown layer
 - a sparse or empty `Key dependencies` section should produce a warning rather than a hard error
+
+Current overview front-matter draft:
+
+The project entry point should also be one Markdown file with YAML front matter.
+
+```yaml
+---
+project_id: my-project
+kind: overview
+title: My Project
+subtitle: Formalization of ...
+main_clusters:
+  - sylow
+  - burnside
+featured_entries:
+  - def:p_group
+  - thm:sylow_exists
+status: incomplete
+---
+```
+
+Overview body responsibilities:
+
+- explain the global logic of the project
+- explain the main roadmap
+- summarize major definitions and theorems
+- summarize current progress and blockers
+- serve as the default landing page before users move into the graph or entry pages
 
 Informal-dependency scope rule:
 
