@@ -5,6 +5,7 @@ import { mkdtemp, readdir, readFile as readOutputFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
+import { buildBenchmarkReport } from "../src/benchmark-report.js";
 import { migrateBlueprintFile, migrateBlueprintPath, writeMigratedEntries } from "../src/blueprint.js";
 import { compareBlueprintPathToProject } from "../src/compare.js";
 import { buildEntryContextBundle, buildEntryReviewBundle } from "../src/context.js";
@@ -158,4 +159,16 @@ test("compare migrated blueprint entries to project registry", async () => {
   assert.deepEqual(summary.missing_in_source, []);
   assert.equal(summary.kind_counts.source.theorem, 1);
   assert.equal(summary.kind_counts.target.definition, 1);
+});
+
+test("build benchmark report", async () => {
+  const report = await buildBenchmarkReport(
+    "benchmarks",
+    "pfr",
+    "test/fixtures/blueprint",
+    "test/fixtures/project",
+  );
+  assert.equal(report.benchmark.id, "pfr");
+  assert.equal(report.comparison.source_entry_count, 2);
+  assert.deepEqual(report.comparison.missing_in_target, []);
 });
