@@ -12,7 +12,7 @@ It is intended to be an AI-native operating layer for Lean formalization project
 - provide doc-gen-style code browsing
 - make it easy for AI to review whether natural language and Lean are aligned
 
-The tool should treat Lean projects as a collection of machine-checkable theorem packets, not as a PDF-first book.
+The tool should treat Lean projects as a collection of machine-checkable entry packets, not as a PDF-first book.
 
 ## 2. Problems With Existing Tools
 
@@ -36,7 +36,7 @@ The tool should treat Lean projects as a collection of machine-checkable theorem
 
 - Markdown-first, not LaTeX-first.
 - Lean and prose should be near each other in the repository.
-- Theorem entry is the main object, not chapter and not module.
+- Entry is the main mathematical object, not chapter and not module.
 - Lean is the formal anchor.
 - Markdown is the human-facing narrative layer.
 - A structured registry is the machine-checkable source of alignment.
@@ -69,16 +69,30 @@ The central unit is an `Entry`.
 
 An `Entry` represents one mathematical object such as:
 
-- a main theorem together with its immediately supporting local lemmas
-- a definition together with its key derived facts
-- a small proof cluster that forms one coherent narrative unit
+- a theorem
+- a definition
+- a proposition
+- a lemma when it deserves its own page and identity
 
 Each entry should have a stable `id` and bind:
 
 - one primary Lean declaration
 - one primary Markdown narrative page
-- zero or more helper declarations in the same proof cluster
+- zero or more nearby helper declarations in its local proof context
 - structured metadata for project management
+
+The project should also support a secondary organizational unit: `Cluster`.
+
+A `Cluster` is:
+
+- a small proof cluster
+- a local neighborhood of related entries
+- a place where several entries may share helper declarations or one proof story
+
+Important distinction:
+
+- `Entry` is the object that gets reviewed, displayed, and aligned
+- `Cluster` is an organizational grouping for nearby entries and helper code
 
 Suggested schema:
 
@@ -96,6 +110,7 @@ Suggested logical fields:
 - `id`
 - `kind`
 - `lean_name`
+- `cluster_id`
 - `helper_decls`
 - `formal_statement`
 - `informal_statement`
@@ -115,20 +130,23 @@ Important rule:
 - completion status must be derived from Lean-side facts whenever possible.
 - Markdown may describe intent or progress notes, but not override Lean-confirmed state.
 - in particular, `formalized` should mean `sorry-free` on the Lean side.
+- the project should use one primary flat status field rather than multiple parallel business-status dimensions.
+- alignment results may still be recorded, but they should remain review metadata rather than a second main status system.
 
 Granularity rule:
 
-- the default unit is a small proof cluster, not a single declaration in isolation
-- each entry should still have one main declaration as its anchor
-- helper lemmas may belong to the same entry when they are part of one local proof story
-- entries should remain small enough that AI review can run theorem-locally without broad context expansion
+- the default review unit is one theorem or one definition
+- each entry has one main declaration as its anchor
+- helper lemmas may be associated with an entry without becoming entries themselves
+- multiple entries may belong to the same small proof cluster
+- clusters exist to organize related entries, not to replace them
 
 ## 5. File Organization
 
 The current preferred direction is:
 
-- one Lean file or one small Lean directory for a proof cluster
-- one nearby Markdown file for cluster-level narrative
+- one Lean file or one small Lean directory for a cluster
+- one Markdown page per entry
 - Lean comments only for local technical notes
 
 Example:
@@ -136,14 +154,12 @@ Example:
 ```text
 GroupTheory/
   Sylow/
-    exists/
-      main.lean
+    cluster/
       helpers.lean
-      entry.md
-    conjugacy/
-      main.lean
-      helpers.lean
-      entry.md
+      sylow_exists.lean
+      sylow_exists.md
+      sylow_conjugacy.lean
+      sylow_conjugacy.md
 ```
 
 Why this layout:
@@ -152,7 +168,7 @@ Why this layout:
 - Markdown editing stays pleasant.
 - AI can easily map files by path and id.
 - Drift detection is easier.
-- one narrative page can cover the main theorem and its local helper layer without artificial splitting
+- related entries can share one local proof area without collapsing into one giant narrative page
 
 We explicitly do **not** want to put the entire natural-language proof into Lean comments.
 
@@ -205,7 +221,7 @@ Rationale:
 - Statement drift is easier to catch.
 - Dependencies can be reviewed locally.
 - authoritative completion state stays on the Lean side instead of drifting in prose.
-- one page can describe a coherent proof cluster instead of scattering explanation across many tiny pages
+- each theorem or definition still gets its own narrative page and identity
 
 ## 7. Lean-Side Responsibilities
 
@@ -258,6 +274,11 @@ Current intended status semantics:
 - `incomplete`: declaration exists but still contains `sorry` or another incomplete marker
 - `missing`: expected entry exists in the project plan but no corresponding Lean declaration is found
 - `blocked`: declaration exists but depends on incomplete upstream results
+
+Status note:
+
+- keep the primary status model flat and simple
+- do not introduce separate proof/prose/alignment status machines as first-class business states in MVP
 
 ## 8. Alignment Layer
 
@@ -385,6 +406,7 @@ The MCP layer should be responsible for narrow, explicit operations such as:
 Preferred property:
 
 - the agent asks the MCP server for a compact theorem packet or validation report
+- the agent asks the MCP server for a compact entry packet or validation report
 - the server performs project scanning, dependency slicing, and low-level checks
 - the agent only receives the minimal payload needed for reasoning
 
@@ -541,7 +563,8 @@ The current architecture should have at least these modules.
 
 Responsible for:
 
-- theorem-entry registry
+- entry registry
+- cluster registry
 - id mapping
 - Lean <-> Markdown binding
 - dependency metadata
@@ -623,7 +646,7 @@ Responsible for:
 
 Responsible for:
 
-- exposing theorem packets to AI tools
+- exposing entry packets to AI tools
 - running deterministic validation checks
 - serving cached dependency slices
 - reporting Lean-confirmed completion state
@@ -639,8 +662,8 @@ Suggested commands:
 leanmd export
 leanmd sync
 leanmd check
-leanmd review thm:foo
-leanmd context thm:foo
+leanmd review entry:foo
+leanmd context entry:foo
 leanmd status
 leanmd mcp
 ```
@@ -651,7 +674,7 @@ Command meanings:
 - `sync`: match Lean objects with Markdown pages
 - `check`: run structural and optional semantic checks
 - `review`: build an entry-local AI review bundle
-- `context`: print or save minimal theorem context
+- `context`: print or save minimal entry context
 - `status`: show project-wide progress and drift
 - `mcp`: run the validation/context server for external AI tooling
 
@@ -711,6 +734,12 @@ These questions are not fully settled yet.
 - Can we derive them automatically, or must authors curate them?
 - How much proof-term analysis is worth doing in MVP?
 
+Working interpretation:
+
+- `semantic_deps` means the declarations that matter in the human mathematical story of an entry
+- these are not all raw implementation dependencies
+- these are the definitions and lemmas that a mathematician or reviewer would naturally cite when explaining the proof
+
 ### Completion-status policy
 
 - What exact Lean-side signals define `formalized`, `incomplete`, and `blocked`?
@@ -732,10 +761,11 @@ Current MVP answer:
 
 ### Entry granularity
 
-- The current default is one entry per small proof cluster.
+- The current default is one entry per theorem or definition.
+- Multiple entries may live inside one small proof cluster.
 - We still need to decide how large a cluster may become before it should be split.
-- We still need precise rules for when a helper lemma deserves its own entry rather than remaining inside a cluster.
-- We still need precise mapping rules from multi-file proof clusters back to one entry page.
+- We still need precise rules for when a helper lemma deserves its own entry rather than remaining auxiliary code inside a cluster.
+- We still need precise mapping rules from multi-file clusters to multiple entry pages.
 
 ### Schema and versioning
 
@@ -760,7 +790,7 @@ Current MVP answer:
 
 - Which validations belong in the MCP server versus the main CLI?
 - Should the MCP server wrap the CLI or share a lower-level library?
-- How should caching and invalidation work for theorem packets and reports?
+- How should caching and invalidation work for entry packets and reports?
 
 ### Lean integration boundary
 
