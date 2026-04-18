@@ -119,6 +119,8 @@ Suggested logical fields:
 - `lean_name`
 - `cluster_id`
 - `helper_decls`
+- `depends_on`
+- `used_by` (optional)
 - `formal_statement`
 - `informal_statement`
 - `assumptions`
@@ -246,6 +248,7 @@ Rationale:
 - Dependencies can be reviewed locally.
 - authoritative completion state stays on the Lean side instead of drifting in prose.
 - each theorem or definition still gets its own narrative page and identity
+- at minimum, outgoing dependencies are visible at the entry level
 
 ## 7. Lean-Side Responsibilities
 
@@ -283,6 +286,13 @@ Important distinction:
 - `narrative deps`: dependencies that should appear in the Markdown page
 
 The tool should focus on `semantic deps` and `narrative deps`, not dump raw dependency noise into the UI.
+
+Dependency direction rule:
+
+- each entry should expose the entries it depends on
+- `used_by` is optional but desirable when it can be computed cheaply and accurately
+- reverse dependency navigation is allowed and recommended when available
+- the MVP hard requirement is outgoing dependency information
 
 Lean-side export should also determine project status signals such as:
 
@@ -651,6 +661,13 @@ The graph should support:
 - showing incomplete upstream blockers
 - showing which entries are fully Lean-confirmed
 
+Entry pages should also show:
+
+- direct dependencies
+- which incomplete entries block this entry
+- reverse dependencies when available
+- which downstream entries are affected by this entry when reverse data is available
+
 Implementation note:
 
 - if `leanblueprint` already has a working dependency-graph pipeline, the project should adapt that pipeline before considering a rewrite
@@ -840,6 +857,11 @@ Current MVP answer:
 - Should users navigate primarily by theorem graph, file tree, or search?
 - How should reverse links from declarations back to theorem entries be surfaced?
 - How should external Mathlib dependencies appear without overwhelming the local project view?
+
+Current direction:
+
+- every entry must expose its direct dependencies
+- reverse dependency navigation is desirable but not required for MVP
 
 ### Math rendering policy
 
