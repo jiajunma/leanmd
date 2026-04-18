@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import process from "node:process";
+import { loadBenchmarkById, loadBenchmarks } from "./benchmarks.js";
 import { migrateBlueprintFile, writeMigratedEntries } from "./blueprint.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import { buildSite } from "./render.js";
@@ -10,7 +11,7 @@ async function main(): Promise<void> {
   const [, , command, target, maybeOutDir] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|build|migrate-blueprint> <path> [out-dir]");
+    console.error("Usage: leanmd <entry|overview|check|build|migrate-blueprint|benchmarks|benchmark> <path> [arg]");
     process.exitCode = 1;
     return;
   }
@@ -94,6 +95,23 @@ async function main(): Promise<void> {
         2,
       ),
     );
+    return;
+  }
+
+  if (command === "benchmarks") {
+    const benchmarks = await loadBenchmarks(target);
+    console.log(JSON.stringify(benchmarks, null, 2));
+    return;
+  }
+
+  if (command === "benchmark") {
+    if (!maybeOutDir) {
+      console.error("Usage: leanmd benchmark <benchmarks-dir> <benchmark-id>");
+      process.exitCode = 1;
+      return;
+    }
+    const benchmark = await loadBenchmarkById(target, maybeOutDir);
+    console.log(JSON.stringify(benchmark, null, 2));
     return;
   }
 

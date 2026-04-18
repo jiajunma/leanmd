@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { mkdtemp, readdir, readFile as readOutputFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { migrateBlueprintFile, writeMigratedEntries } from "../src/blueprint.js";
 import { countActiveSorry } from "../src/lean.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
@@ -89,4 +90,12 @@ test("build standalone site output", async () => {
   const entryHtml = await readOutputFile(path.join(outDir, "entries", "thm_sylow_exists.html"), "utf-8");
   assert.match(entryHtml, /Sylow existence/);
   assert.match(entryHtml, /status: <strong>blocked<\/strong>/);
+});
+
+test("load benchmark manifests", async () => {
+  const benchmarks = await loadBenchmarks("benchmarks");
+  assert.ok(benchmarks.length >= 1);
+  const pfr = await loadBenchmarkById("benchmarks", "pfr");
+  assert.equal(pfr.title, "PFR Conjecture");
+  assert.match(pfr.published_blueprint, /teorth\.github\.io\/pfr\/blueprint/);
 });
