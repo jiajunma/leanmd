@@ -95,6 +95,7 @@ function renderOverviewPage(registry: Registry): string {
       ${fm.subtitle ? `<p>${escapeHtml(fm.subtitle)}</p>` : ""}
       <p>project id: <code>${escapeHtml(fm.project_id)}</code></p>
       <p>status: <strong>${escapeHtml(fm.status)}</strong></p>
+      <p><a href="/graph.html">Open dependency graph</a></p>
     </header>
     <section>
       <h2>Entries</h2>
@@ -130,6 +131,43 @@ function buildGraphData(registry: Registry) {
   return { nodes, edges };
 }
 
+function renderGraphPage(registry: Registry): string {
+  const graph = buildGraphData(registry);
+  const nodeItems = graph.nodes
+    .map(
+      (node) =>
+        `<li><code>${escapeHtml(node.id)}</code> · ${escapeHtml(node.kind)} · ${escapeHtml(node.status)}</li>`,
+    )
+    .join("\n");
+  const edgeItems = graph.edges
+    .map(
+      (edge) =>
+        `<li><code>${escapeHtml(edge.from)}</code> → <code>${escapeHtml(edge.to)}</code> (${escapeHtml(
+          edge.source,
+        )})</li>`,
+    )
+    .join("\n");
+
+  return basePage(
+    `${registry.overview.frontMatter.title} Graph`,
+    `
+      <header>
+        <h1>Dependency Graph</h1>
+        <p><a href="/index.html">Back to overview</a></p>
+        <p>JSON data: <code>/generated/dep-graph.json</code></p>
+      </header>
+      <section>
+        <h2>Nodes</h2>
+        <ul>${nodeItems}</ul>
+      </section>
+      <section>
+        <h2>Edges</h2>
+        <ul>${edgeItems}</ul>
+      </section>
+    `,
+  );
+}
+
 const SITE_CSS = `
 body { font-family: sans-serif; margin: 0; background: #fcfcf7; color: #1f1f1a; }
 .page { max-width: 960px; margin: 0 auto; padding: 2rem; }
@@ -150,8 +188,10 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
   await mkdir(generatedDir, { recursive: true });
 
   await writeFile(path.join(outDir, "index.html"), renderOverviewPage(registry), "utf-8");
+  await writeFile(path.join(outDir, "graph.html"), renderGraphPage(registry), "utf-8");
   await writeFile(path.join(assetsDir, "site.css"), SITE_CSS, "utf-8");
 
+  const graphData = buildGraphData(registry);
   for (const entry of registry.entries) {
     const fileName = entryOutputName(entry.document.frontMatter.id);
     await writeFile(path.join(entriesDir, fileName), renderEntryPage(entry), "utf-8");
@@ -188,7 +228,7 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
   );
   await writeFile(
     path.join(generatedDir, "dep-graph.json"),
-    JSON.stringify(buildGraphData(registry), null, 2),
+    JSON.stringify(graphData, null, 2),
     "utf-8",
   );
 

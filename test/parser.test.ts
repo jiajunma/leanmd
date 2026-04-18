@@ -83,6 +83,9 @@ test("build standalone site output", async () => {
   assert.deepEqual(generated, ["dep-graph.json", "registry.json", "status.json"]);
   const indexHtml = await readOutputFile(path.join(outDir, "index.html"), "utf-8");
   assert.match(indexHtml, /Demo Project/);
+  assert.match(indexHtml, /Open dependency graph/);
+  const graphHtml = await readOutputFile(path.join(outDir, "graph.html"), "utf-8");
+  assert.match(graphHtml, /Dependency Graph/);
   const entryHtml = await readOutputFile(path.join(outDir, "entries", "thm_sylow_exists.html"), "utf-8");
   assert.match(entryHtml, /Sylow existence/);
   assert.match(entryHtml, /status: <strong>blocked<\/strong>/);
