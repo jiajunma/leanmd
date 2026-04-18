@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import MarkdownIt from "markdown-it";
+import { buildGraphData, buildRegistryData, buildStatusData } from "./export.js";
 import { buildRegistry } from "./registry.js";
 import type { Registry, RegistryEntry } from "./registry.js";
 
@@ -106,31 +107,6 @@ function renderOverviewPage(registry: Registry): string {
   return basePage(fm.title, `${summary}\n${introSections}`);
 }
 
-function buildGraphData(registry: Registry) {
-  const nodes = registry.entries.map((entry) => ({
-    id: entry.document.frontMatter.id,
-    kind: entry.document.frontMatter.kind,
-    title: entry.document.frontMatter.title,
-    cluster: entry.document.frontMatter.cluster,
-    status: entry.computedStatus,
-  }));
-  const edges = registry.entries.flatMap((entry) => {
-    const from = entry.document.frontMatter.id;
-    const informal = entry.document.frontMatter.depends_on.informal.map((to) => ({
-      from,
-      to,
-      source: "informal" as const,
-    }));
-    const formal = entry.document.frontMatter.depends_on.formal.map((to) => ({
-      from,
-      to,
-      source: "formal" as const,
-    }));
-    return [...informal, ...formal];
-  });
-  return { nodes, edges };
-}
-
 function renderGraphPage(registry: Registry): string {
   const graph = buildGraphData(registry);
   const nodeItems = graph.nodes
@@ -199,31 +175,12 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
 
   await writeFile(
     path.join(generatedDir, "registry.json"),
-    JSON.stringify(
-      registry.entries.map((entry) => ({
-        id: entry.document.frontMatter.id,
-        title: entry.document.frontMatter.title,
-        kind: entry.document.frontMatter.kind,
-        cluster: entry.document.frontMatter.cluster,
-        status: entry.computedStatus,
-      })),
-      null,
-      2,
-    ),
+    JSON.stringify(buildRegistryData(registry), null, 2),
     "utf-8",
   );
   await writeFile(
     path.join(generatedDir, "status.json"),
-    JSON.stringify(
-      registry.entries.map((entry) => ({
-        id: entry.document.frontMatter.id,
-        status: entry.computedStatus,
-        blocked_by: entry.blockedBy,
-        active_sorry_count: entry.activeSorryCount,
-      })),
-      null,
-      2,
-    ),
+    JSON.stringify(buildStatusData(registry), null, 2),
     "utf-8",
   );
   await writeFile(

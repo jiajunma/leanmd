@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { loadBenchmarkById, loadBenchmarks } from "./benchmarks.js";
 import { migrateBlueprintFile, writeMigratedEntries } from "./blueprint.js";
+import { exportProject } from "./export.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import { buildSite } from "./render.js";
 import { checkRegistry } from "./registry.js";
@@ -11,7 +12,7 @@ async function main(): Promise<void> {
   const [, , command, target, maybeOutDir] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|build|migrate-blueprint|benchmarks|benchmark> <path> [arg]");
+    console.error("Usage: leanmd <entry|overview|check|export|build|migrate-blueprint|benchmarks|benchmark> <path> [arg]");
     process.exitCode = 1;
     return;
   }
@@ -84,6 +85,27 @@ async function main(): Promise<void> {
       return;
     }
     const registry = await buildSite(target, maybeOutDir);
+    console.log(
+      JSON.stringify(
+        {
+          overview: registry.overview.frontMatter.title,
+          entry_count: registry.entries.length,
+          out_dir: maybeOutDir,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  if (command === "export") {
+    if (!maybeOutDir) {
+      console.error("Usage: leanmd export <project-root> <out-dir>");
+      process.exitCode = 1;
+      return;
+    }
+    const registry = await exportProject(target, maybeOutDir);
     console.log(
       JSON.stringify(
         {

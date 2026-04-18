@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { migrateBlueprintFile, writeMigratedEntries } from "../src/blueprint.js";
+import { exportProject } from "../src/export.js";
 import { countActiveSorry } from "../src/lean.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
 import { buildSite } from "../src/render.js";
@@ -98,4 +99,15 @@ test("load benchmark manifests", async () => {
   const pfr = await loadBenchmarkById("benchmarks", "pfr");
   assert.equal(pfr.title, "PFR Conjecture");
   assert.match(pfr.published_blueprint, /teorth\.github\.io\/pfr\/blueprint/);
+});
+
+test("export machine-readable project artifacts", async () => {
+  const outDir = await mkdtemp(path.join(os.tmpdir(), "leanmd-export-"));
+  const registry = await exportProject("test/fixtures/project", outDir);
+  assert.equal(registry.entries.length, 2);
+  const files = (await readdir(outDir)).sort();
+  assert.deepEqual(files, ["dep-graph.json", "registry.json", "status.json"]);
+  const graphJson = await readOutputFile(path.join(outDir, "dep-graph.json"), "utf-8");
+  assert.match(graphJson, /"source": "informal"/);
+  assert.match(graphJson, /"source": "formal"/);
 });
