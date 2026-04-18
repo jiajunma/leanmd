@@ -681,6 +681,12 @@ The graph should support:
 - showing incomplete upstream blockers
 - showing which entries are fully Lean-confirmed
 
+Graph edge-style rule:
+
+- dashed edges represent narrative dependencies from the human-facing entry description
+- solid edges represent formal dependencies discovered from Lean analysis
+- when both relations exist between the same two entries, the graph should make that visible rather than silently collapsing them
+
 Entry pages should also show:
 
 - direct dependencies
