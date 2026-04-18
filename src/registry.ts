@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { countActiveSorryInFile, fileExists } from "./lean.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import type {
   EntryStatus,
@@ -22,6 +23,7 @@ export interface RegistryEntry {
   computedStatus: EntryStatus;
   usedBy: string[];
   blockedBy: string[];
+  activeSorryCount: number | null;
 }
 
 export interface Registry {
@@ -109,17 +111,19 @@ function computeUsedBy(entries: ParsedEntryDocument[]): Map<string, string[]> {
   return usedBy;
 }
 
-function computeBlockedBy(entries: ParsedEntryDocument[]): Map<string, string[]> {
-  const byId = new Map(entries.map((entry) => [entry.frontMatter.id, entry]));
+function computeBlockedBy(
+  entries: ParsedEntryDocument[],
+  statuses: Map<string, EntryStatus>,
+): Map<string, string[]> {
   const blockedBy = new Map<string, string[]>();
 
   for (const entry of entries) {
     const blockers = entry.frontMatter.depends_on.formal.filter((depId) => {
-      const dep = byId.get(depId);
-      if (!dep) {
+      const depStatus = statuses.get(depId);
+      if (!depStatus) {
         return false;
       }
-      return dep.frontMatter.status === "missing" || dep.frontMatter.status === "incomplete";
+      return depStatus === "missing" || depStatus === "incomplete";
     });
     blockedBy.set(entry.frontMatter.id, blockers);
   }
@@ -127,17 +131,39 @@ function computeBlockedBy(entries: ParsedEntryDocument[]): Map<string, string[]>
   return blockedBy;
 }
 
-function computeStatus(
+async function computeBaseStatus(
   entry: ParsedEntryDocument,
+  rootDir: string,
+): Promise<{ status: EntryStatus; activeSorryCount: number | null }> {
+  const lean = entry.frontMatter.lean;
+  if (!lean) {
+    return { status: "missing", activeSorryCount: null };
+  }
+
+  const fullPath = path.isAbsolute(lean.main_file) ? lean.main_file : path.join(rootDir, lean.main_file);
+  if (!(await fileExists(fullPath))) {
+    return { status: "missing", activeSorryCount: null };
+  }
+
+  const activeSorryCount = await countActiveSorryInFile(fullPath);
+  if (activeSorryCount > 0) {
+    return { status: "incomplete", activeSorryCount };
+  }
+
+  return { status: "formalized", activeSorryCount: 0 };
+}
+
+function computeStatus(
+  baseStatus: EntryStatus,
   blockedBy: string[],
 ): EntryStatus {
-  if (entry.frontMatter.status === "missing" || entry.frontMatter.status === "incomplete") {
-    return entry.frontMatter.status;
+  if (baseStatus === "missing" || baseStatus === "incomplete") {
+    return baseStatus;
   }
   if (blockedBy.length > 0) {
     return "blocked";
   }
-  return entry.frontMatter.status;
+  return baseStatus;
 }
 
 export async function buildRegistry(rootDir: string): Promise<Registry> {
@@ -145,17 +171,29 @@ export async function buildRegistry(rootDir: string): Promise<Registry> {
   const entryDocs = await loadEntries(rootDir);
   const byId = new Map<string, RegistryEntry>();
   const usedByMap = computeUsedBy(entryDocs);
-  const blockedByMap = computeBlockedBy(entryDocs);
+  const baseStatuses = new Map<string, EntryStatus>();
+  const activeSorryCounts = new Map<string, number | null>();
+
+  await Promise.all(
+    entryDocs.map(async (document) => {
+      const { status, activeSorryCount } = await computeBaseStatus(document, rootDir);
+      baseStatuses.set(document.frontMatter.id, status);
+      activeSorryCounts.set(document.frontMatter.id, activeSorryCount);
+    }),
+  );
+
+  const blockedByMap = computeBlockedBy(entryDocs, baseStatuses);
 
   const entries = entryDocs.map((document) => {
     const usedBy = usedByMap.get(document.frontMatter.id) ?? [];
     const blockedBy = blockedByMap.get(document.frontMatter.id) ?? [];
-    const computedStatus = computeStatus(document, blockedBy);
+    const computedStatus = computeStatus(baseStatuses.get(document.frontMatter.id) ?? "missing", blockedBy);
     const entry: RegistryEntry = {
       document,
       computedStatus,
       usedBy,
       blockedBy,
+      activeSorryCount: activeSorryCounts.get(document.frontMatter.id) ?? null,
     };
     byId.set(document.frontMatter.id, entry);
     return entry;
@@ -231,6 +269,10 @@ export async function checkRegistry(rootDir: string): Promise<RegistryCheckResul
       }
       if (!main_decl.trim()) {
         pushIssue(issues, "error", entryPath, "Lean binding requires a non-empty main_decl.");
+      }
+      const fullPath = path.isAbsolute(main_file) ? main_file : path.join(rootDir, main_file);
+      if (!(await fileExists(fullPath))) {
+        pushIssue(issues, "error", entryPath, `Lean main_file does not exist: '${main_file}'.`);
       }
     }
   }

@@ -9,6 +9,9 @@ depends_on:
   formal: []
 used_by: []
 blocked_by: []
+lean:
+  main_file: lean/GroupTheory/Sylow/p_group.lean
+  main_decl: MyProject.GroupTheory.p_group
 ---
 
 # Informal statement

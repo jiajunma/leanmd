@@ -5,6 +5,7 @@ import { mkdtemp, readdir, readFile as readOutputFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { migrateBlueprintFile, writeMigratedEntries } from "../src/blueprint.js";
+import { countActiveSorry } from "../src/lean.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
 import { checkRegistry } from "../src/registry.js";
 
@@ -39,6 +40,8 @@ test("build registry and derive reverse dependencies and blocked status", async 
   assert.deepEqual(theorem.blockedBy, ["def:p_group"]);
   assert.equal(theorem.computedStatus, "blocked");
   assert.deepEqual(definition.usedBy, ["thm:sylow_exists"]);
+  assert.equal(theorem.activeSorryCount, 0);
+  assert.equal(definition.activeSorryCount, 1);
 });
 
 test("migrate blueprint tex into entry markdown files", async () => {
@@ -58,4 +61,15 @@ test("migrate blueprint tex into entry markdown files", async () => {
   assert.match(migrated, /depends_on:/);
   assert.match(migrated, /main_decl: MyProject\.GroupTheory\.sylow_exists/);
   assert.match(migrated, /# Proof outline/);
+});
+
+test("count active sorry excludes comments and strings", () => {
+  const content = `
+-- sorry in a line comment
+/- sorry in a block comment -/
+def hello := "sorry in a string"
+theorem t : True := by
+  sorry
+`;
+  assert.equal(countActiveSorry(content), 1);
 });
