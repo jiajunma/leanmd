@@ -6,7 +6,7 @@
 
 It is intended to be an AI-native operating layer for Lean formalization projects:
 
-- organize theorem-level mathematical narratives
+- organize entry-level mathematical narratives
 - connect each narrative entry to a Lean declaration
 - provide blueprint-style project structure
 - provide doc-gen-style code browsing
@@ -27,7 +27,7 @@ The tool should treat Lean projects as a collection of machine-checkable theorem
 ### `doc-gen4`
 
 - It is useful for declaration browsing, source links, and API pages.
-- It is not suitable as the main data model for theorem-level project management.
+- It is not suitable as the main data model for entry-level project management.
 - It tends toward library-wide documentation, which brings in too much imported material.
 - For this project, we do not want a local mirror of all Mathlib declarations.
 - We only want theorem-relevant context and actually-used external dependencies.
@@ -215,7 +215,8 @@ Current integration direction:
 
 - declaration scanning provides the stable baseline inventory
 - Lean-LSP analysis provides richer local semantic information when available
-- the MVP should combine both instead of relying on only one mechanism
+- `jixia` provides deeper static-analysis data for declaration structure, symbol references, tactics, and proof states
+- the MVP should combine declaration scanning, Lean-LSP analysis, and `jixia` instead of relying on only one mechanism
 
 The Lean-side exporter should provide:
 
@@ -227,14 +228,22 @@ The Lean-side exporter should provide:
 - local declarations used
 - external declarations used
 - tags/status if present
-- optional theorem-level metadata hooks
+- optional entry-level metadata hooks
 
 Lean-LSP-backed analysis should be used for tasks such as:
 
 - finding declaration ranges and local references
 - extracting more precise dependency slices
 - relating helper lemmas to the main declaration through usage patterns
-- improving theorem-local context selection for AI review
+- improving entry-local context selection for AI review
+
+`jixia`-backed analysis should be used for tasks such as:
+
+- extracting declaration-level structural data from Lean files
+- building richer symbol and reference graphs
+- inspecting elaboration and tactic traces where useful
+- exposing line-level proof states for cluster analysis and AI review support
+- improving automatic grouping of helper lemmas into proof clusters
 
 Important distinction:
 
@@ -284,7 +293,7 @@ The tool should support two kinds of checks.
 - proof outline mentions a lemma not reflected in dependencies
 - status mismatch between narrative and formal code
 
-The output should be machine-readable and theorem-local.
+The output should be machine-readable and entry-local.
 
 Proof-completion status must be Lean-confirmed.
 
@@ -332,7 +341,7 @@ The project should include a dedicated skills layer for recurring AI workflows.
 The goal of the skills layer is:
 
 - keep prompts short and consistent
-- keep theorem-local review workflows reusable
+- keep entry-local review workflows reusable
 - avoid re-explaining alignment procedures in every session
 - reduce context bloat by moving stable process knowledge out of ad hoc chat
 
@@ -342,7 +351,7 @@ Candidate built-in skills:
 - `statement-draft`: draft an informal statement from a Lean theorem type
 - `outline-check`: compare proof outline against semantic dependencies
 - `gap-audit`: inspect open gaps and suggest next formalization tasks
-- `context-pack`: prepare a theorem-local bundle for downstream AI tools
+- `context-pack`: prepare an entry-local bundle for downstream AI tools
 
 Skills should prefer structured inputs and outputs over free-form prose.
 
@@ -368,7 +377,7 @@ Validation should be exposed through an MCP-style server boundary where practica
 
 The motivation is:
 
-- keep the main AI context window focused on theorem-local reasoning
+- keep the main AI context window focused on entry-local reasoning
 - move deterministic or semi-deterministic checks out of chat context
 - allow external tools to request validation without re-embedding the whole project
 - standardize machine-readable validation outputs
@@ -376,10 +385,11 @@ The motivation is:
 The MCP layer should be responsible for narrow, explicit operations such as:
 
 - fetch entry packet by id
-- fetch theorem-local dependency closure
+- fetch entry-local dependency closure
 - run structural alignment checks
 - query Lean-confirmed proof status
-- run theorem-level review pipelines
+- run entry-level review pipelines
+- query `jixia`-derived structural and proof-state data
 - return cached validation results
 
 Preferred property:
@@ -408,7 +418,7 @@ The new tool should include both categories of functionality, but on top of one 
 - type display
 - name search
 - declaration cross-links
-- navigation from theorem entry to source declaration
+- navigation from entry pages to source declarations
 
 ### Features not to inherit directly
 
@@ -573,7 +583,7 @@ Responsible for:
 
 - structural checks
 - semantic drift checks
-- theorem-local reports
+- entry-local reports
 - AI review bundle generation
 
 ### 5. Site Layer
@@ -581,7 +591,7 @@ Responsible for:
 Responsible for:
 
 - project dashboard
-- theorem entry pages
+- entry pages
 - declaration pages
 - dependency graph views
 - status views
@@ -606,7 +616,7 @@ Implementation note:
 
 Responsible for:
 
-- selecting theorem-local context for AI
+- selecting entry-local context for AI
 - keeping external dependencies small
 - producing compact review bundles
 
@@ -627,6 +637,7 @@ Responsible for:
 - running deterministic validation checks
 - serving cached dependency slices
 - reporting Lean-confirmed completion state
+- brokering access to `jixia` analysis results
 - keeping expensive project scans outside the main interaction context
 
 ## 13. CLI Surface
@@ -650,7 +661,7 @@ Command meanings:
 - `export`: export Lean-side registry data
 - `sync`: match Lean objects with Markdown pages
 - `check`: run structural and optional semantic checks
-- `review`: build a theorem-local AI review bundle
+- `review`: build an entry-local AI review bundle
 - `context`: print or save minimal theorem context
 - `status`: show project-wide progress and drift
 - `mcp`: run the validation/context server for external AI tooling
@@ -661,12 +672,13 @@ The first version should stay narrow.
 
 ### Must-have MVP features
 
-- theorem-level registry
+- entry-level registry
 - nearby `.lean + .md` pairing
 - fixed Markdown template
 - Lean exporter
+- `jixia` integration
 - structural checker
-- theorem-level context bundler
+- entry-level context bundler
 - minimal AI alignment reviewer
 - project status summary
 - strong math rendering
@@ -764,9 +776,10 @@ Current MVP answer:
 
 ### Lean integration boundary
 
-- Current MVP direction: combine declaration scanning with Lean-LSP analysis.
+- Current MVP direction: combine declaration scanning, Lean-LSP analysis, and `jixia`.
 - We still need to decide how much metadata should require explicit author annotation.
 - We still need to decide which analyses must run inside Lean versus through LSP queries versus post-processing outside Lean.
+- We still need a fallback mode for projects where `jixia` is temporarily unavailable or version-mismatched.
 
 ### UI shape
 
@@ -815,6 +828,12 @@ Current MVP answer:
 - How should the tool behave when `Tectonic`, `dvisvgm`, or optional AI tooling is missing?
 - What should CI require versus what may remain optional in local development?
 
+### `jixia` operating constraints
+
+- How should the tool manage `jixia` and project Lean-version compatibility?
+- Should `jixia` outputs be cached per file, per commit, or per build artifact?
+- Which features should degrade gracefully when `jixia` cannot run?
+
 ## 17. Working Summary
 
 The current plan is to build:
@@ -827,14 +846,15 @@ The current plan is to build:
 - project-management and documentation system
 - with first-class dependency graph support
 - with proof completion confirmed from Lean rather than prose
-- with reusable AI skills for theorem-local work
+- with reusable AI skills for entry-local work
 - with an MCP-style validation layer to keep context clean
+- with `jixia` as a core analysis component alongside declaration scanning and Lean-LSP
 
 It should unify:
 
 - blueprint-style mathematical project structure
 - doc-gen-style declaration browsing
-- theorem-local AI alignment review
+- entry-local AI alignment review
 
 without inheriting:
 
@@ -850,8 +870,9 @@ When implementation starts, the next concrete steps should be:
 2. define the exact JSON schema for exported entry records
 3. define the exact Markdown front matter and required sections
 4. define the Lean exporter interface
-5. define the alignment report schema
-6. define the skill interfaces and output schemas
-7. define the MCP server operations and payload schemas
-8. scaffold the CLI
-9. pick and wire the site generator
+5. define how `jixia` data is ingested, cached, and exposed
+6. define the alignment report schema
+7. define the skill interfaces and output schemas
+8. define the MCP server operations and payload schemas
+9. scaffold the CLI
+10. pick and wire the site generator
