@@ -1,0 +1,196 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import MarkdownIt from "markdown-it";
+import { buildRegistry } from "./registry.js";
+import type { Registry, RegistryEntry } from "./registry.js";
+
+const md = new MarkdownIt({
+  html: false,
+  linkify: true,
+  typographer: false,
+});
+
+function escapeHtml(text: string): string {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
+}
+
+function renderSection(title: string, content: string): string {
+  return `<section><h2>${escapeHtml(title)}</h2>${md.render(content || "_TODO_")}</section>`;
+}
+
+function entryOutputName(id: string): string {
+  return `${id}.html`.replaceAll("/", "_").replaceAll(":", "_");
+}
+
+function basePage(title: string, body: string): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(title)}</title>
+    <link rel="stylesheet" href="/assets/site.css" />
+  </head>
+  <body>
+    <main class="page">
+      ${body}
+    </main>
+  </body>
+</html>`;
+}
+
+function renderEntryPage(entry: RegistryEntry): string {
+  const fm = entry.document.frontMatter;
+  const sectionOrder = [
+    "Informal statement",
+    "Assumptions",
+    "Conclusion",
+    "Proof outline",
+    "Key dependencies",
+    "Formalization notes",
+    "Open gaps",
+  ];
+  const sections = sectionOrder
+    .map((section) => renderSection(section, entry.document.sections[section] ?? ""))
+    .join("\n");
+
+  const metadata = `
+    <header>
+      <h1>${escapeHtml(fm.title)}</h1>
+      <p><strong>${escapeHtml(fm.kind)}</strong> · status: <strong>${escapeHtml(entry.computedStatus)}</strong></p>
+      <p>id: <code>${escapeHtml(fm.id)}</code></p>
+      <p>cluster: <code>${escapeHtml(fm.cluster)}</code></p>
+      <p>blocked_by: ${
+        entry.blockedBy.length > 0
+          ? entry.blockedBy.map((id) => `<code>${escapeHtml(id)}</code>`).join(", ")
+          : "<em>none</em>"
+      }</p>
+    </header>
+  `;
+
+  return basePage(fm.title, `${metadata}\n${sections}`);
+}
+
+function renderOverviewPage(registry: Registry): string {
+  const fm = registry.overview.frontMatter;
+  const introSections = Object.entries(registry.overview.sections)
+    .map(([title, content]) => renderSection(title, content))
+    .join("\n");
+  const entryList = registry.entries
+    .map(
+      (entry) =>
+        `<li><a href="/entries/${escapeHtml(entryOutputName(entry.document.frontMatter.id))}">${escapeHtml(
+          entry.document.frontMatter.title,
+        )}</a> <span class="status">${escapeHtml(entry.computedStatus)}</span></li>`,
+    )
+    .join("\n");
+
+  const summary = `
+    <header>
+      <h1>${escapeHtml(fm.title)}</h1>
+      ${fm.subtitle ? `<p>${escapeHtml(fm.subtitle)}</p>` : ""}
+      <p>project id: <code>${escapeHtml(fm.project_id)}</code></p>
+      <p>status: <strong>${escapeHtml(fm.status)}</strong></p>
+    </header>
+    <section>
+      <h2>Entries</h2>
+      <ul>${entryList}</ul>
+    </section>
+  `;
+
+  return basePage(fm.title, `${summary}\n${introSections}`);
+}
+
+function buildGraphData(registry: Registry) {
+  const nodes = registry.entries.map((entry) => ({
+    id: entry.document.frontMatter.id,
+    kind: entry.document.frontMatter.kind,
+    title: entry.document.frontMatter.title,
+    cluster: entry.document.frontMatter.cluster,
+    status: entry.computedStatus,
+  }));
+  const edges = registry.entries.flatMap((entry) => {
+    const from = entry.document.frontMatter.id;
+    const informal = entry.document.frontMatter.depends_on.informal.map((to) => ({
+      from,
+      to,
+      source: "informal" as const,
+    }));
+    const formal = entry.document.frontMatter.depends_on.formal.map((to) => ({
+      from,
+      to,
+      source: "formal" as const,
+    }));
+    return [...informal, ...formal];
+  });
+  return { nodes, edges };
+}
+
+const SITE_CSS = `
+body { font-family: sans-serif; margin: 0; background: #fcfcf7; color: #1f1f1a; }
+.page { max-width: 960px; margin: 0 auto; padding: 2rem; }
+h1, h2 { line-height: 1.15; }
+code { background: #f0efe8; padding: 0.1rem 0.3rem; border-radius: 4px; }
+.status { margin-left: 0.5rem; color: #666; }
+section { margin-top: 2rem; }
+`;
+
+export async function buildSite(rootDir: string, outDir: string): Promise<Registry> {
+  const registry = await buildRegistry(rootDir);
+  const entriesDir = path.join(outDir, "entries");
+  const assetsDir = path.join(outDir, "assets");
+  const generatedDir = path.join(outDir, "generated");
+
+  await mkdir(entriesDir, { recursive: true });
+  await mkdir(assetsDir, { recursive: true });
+  await mkdir(generatedDir, { recursive: true });
+
+  await writeFile(path.join(outDir, "index.html"), renderOverviewPage(registry), "utf-8");
+  await writeFile(path.join(assetsDir, "site.css"), SITE_CSS, "utf-8");
+
+  for (const entry of registry.entries) {
+    const fileName = entryOutputName(entry.document.frontMatter.id);
+    await writeFile(path.join(entriesDir, fileName), renderEntryPage(entry), "utf-8");
+  }
+
+  await writeFile(
+    path.join(generatedDir, "registry.json"),
+    JSON.stringify(
+      registry.entries.map((entry) => ({
+        id: entry.document.frontMatter.id,
+        title: entry.document.frontMatter.title,
+        kind: entry.document.frontMatter.kind,
+        cluster: entry.document.frontMatter.cluster,
+        status: entry.computedStatus,
+      })),
+      null,
+      2,
+    ),
+    "utf-8",
+  );
+  await writeFile(
+    path.join(generatedDir, "status.json"),
+    JSON.stringify(
+      registry.entries.map((entry) => ({
+        id: entry.document.frontMatter.id,
+        status: entry.computedStatus,
+        blocked_by: entry.blockedBy,
+        active_sorry_count: entry.activeSorryCount,
+      })),
+      null,
+      2,
+    ),
+    "utf-8",
+  );
+  await writeFile(
+    path.join(generatedDir, "dep-graph.json"),
+    JSON.stringify(buildGraphData(registry), null, 2),
+    "utf-8",
+  );
+
+  return registry;
+}

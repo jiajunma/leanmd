@@ -3,13 +3,14 @@ import { readFile } from "node:fs/promises";
 import process from "node:process";
 import { migrateBlueprintFile, writeMigratedEntries } from "./blueprint.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
+import { buildSite } from "./render.js";
 import { checkRegistry } from "./registry.js";
 
 async function main(): Promise<void> {
   const [, , command, target, maybeOutDir] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|migrate-blueprint> <path> [out-dir]");
+    console.error("Usage: leanmd <entry|overview|check|build|migrate-blueprint> <path> [out-dir]");
     process.exitCode = 1;
     return;
   }
@@ -68,6 +69,27 @@ async function main(): Promise<void> {
           status: entry.status,
           depends_on: entry.depends_on.informal,
         })),
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  if (command === "build") {
+    if (!maybeOutDir) {
+      console.error("Usage: leanmd build <project-root> <out-dir>");
+      process.exitCode = 1;
+      return;
+    }
+    const registry = await buildSite(target, maybeOutDir);
+    console.log(
+      JSON.stringify(
+        {
+          overview: registry.overview.frontMatter.title,
+          entry_count: registry.entries.length,
+          out_dir: maybeOutDir,
+        },
         null,
         2,
       ),

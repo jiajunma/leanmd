@@ -7,6 +7,7 @@ import path from "node:path";
 import { migrateBlueprintFile, writeMigratedEntries } from "../src/blueprint.js";
 import { countActiveSorry } from "../src/lean.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
+import { buildSite } from "../src/render.js";
 import { checkRegistry } from "../src/registry.js";
 
 test("parse entry document", async () => {
@@ -72,4 +73,17 @@ theorem t : True := by
   sorry
 `;
   assert.equal(countActiveSorry(content), 1);
+});
+
+test("build standalone site output", async () => {
+  const outDir = await mkdtemp(path.join(os.tmpdir(), "leanmd-site-"));
+  const registry = await buildSite("test/fixtures/project", outDir);
+  assert.equal(registry.entries.length, 2);
+  const generated = (await readdir(path.join(outDir, "generated"))).sort();
+  assert.deepEqual(generated, ["dep-graph.json", "registry.json", "status.json"]);
+  const indexHtml = await readOutputFile(path.join(outDir, "index.html"), "utf-8");
+  assert.match(indexHtml, /Demo Project/);
+  const entryHtml = await readOutputFile(path.join(outDir, "entries", "thm_sylow_exists.html"), "utf-8");
+  assert.match(entryHtml, /Sylow existence/);
+  assert.match(entryHtml, /status: <strong>blocked<\/strong>/);
 });
