@@ -150,6 +150,13 @@ The current preferred direction is:
 - one Markdown page per entry
 - Lean comments only for local technical notes
 
+Main-file rule:
+
+- an entry's main Lean file should contain that entry's main declaration
+- it may also contain only the local helper lemmas directly supporting that entry
+- it should not mix in unrelated entries
+- this keeps completion checks, dependency attribution, and AI review boundaries accurate
+
 Example:
 
 ```text
@@ -171,6 +178,7 @@ Why this layout:
 - Drift detection is easier.
 - related entries can share one local proof area without collapsing into one giant narrative page
 - completion status can be checked cheaply from the entry's own Lean file
+- each entry's completion status can be attributed cleanly because unrelated entries are kept out of its main Lean file
 
 We explicitly do **not** want to put the entire natural-language proof into Lean comments.
 
@@ -775,6 +783,7 @@ Current MVP answer:
 - We still need precise rules for when a helper lemma deserves its own entry rather than remaining auxiliary code inside a cluster.
 - We still need precise mapping rules from multi-file clusters to multiple entry pages.
 - Completion checking works best when each entry has its own main Lean file even inside a shared cluster directory.
+- The main Lean file of an entry should contain only that entry's main declaration and its directly related local helpers.
 
 ### Schema and versioning
 
