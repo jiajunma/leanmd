@@ -112,8 +112,8 @@ test("build standalone site output", async () => {
   assert.match(graphHtml, /Solid edges = formal, dashed edges = informal/);
   const statusHtml = await readOutputFile(path.join(outDir, "status.html"), "utf-8");
   assert.match(statusHtml, /Status Summary/);
-  assert.match(statusHtml, /<h2>blocked<\/h2>/);
-  assert.match(statusHtml, /thm:sylow_exists/);
+  assert.match(statusHtml, /id="status-root"/);
+  assert.match(statusHtml, /assets\/app.js/);
   const clusterHtml = await readOutputFile(path.join(outDir, "clusters", "sylow.html"), "utf-8");
   assert.match(clusterHtml, /Cluster: sylow/);
   assert.match(clusterHtml, /Sylow existence/);

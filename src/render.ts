@@ -164,31 +164,6 @@ function renderGraphPage(registry: Registry): string {
 }
 
 function renderStatusPage(registry: Registry): string {
-  const groups = new Map<string, RegistryEntry[]>();
-  for (const entry of registry.entries) {
-    const list = groups.get(entry.computedStatus) ?? [];
-    list.push(entry);
-    groups.set(entry.computedStatus, list);
-  }
-
-  const sections = ["formalized", "incomplete", "blocked", "missing"]
-    .map((status) => {
-      const entries = groups.get(status) ?? [];
-      const items =
-        entries.length > 0
-          ? entries
-              .map(
-                (entry) =>
-                  `<li><a href="/entries/${escapeHtml(entryOutputName(entry.document.frontMatter.id))}">${escapeHtml(
-                    entry.document.frontMatter.title,
-                  )}</a> <code>${escapeHtml(entry.document.frontMatter.id)}</code></li>`,
-              )
-              .join("\n")
-          : "<li><em>none</em></li>";
-      return `<section><h2>${escapeHtml(status)}</h2><ul>${items}</ul></section>`;
-    })
-    .join("\n");
-
   return basePage(
     `${registry.overview.frontMatter.title} Status`,
     `
@@ -196,7 +171,7 @@ function renderStatusPage(registry: Registry): string {
         <h1>Status Summary</h1>
         <p><a href="/index.html">Back to overview</a></p>
       </header>
-      ${sections}
+      <div id="status-root" data-status-json="/generated/status.json" data-registry-json="/generated/registry.json"></div>
     `,
   );
 }
@@ -306,8 +281,38 @@ async function renderGraph() {
   }
 }
 
-renderGraph().catch((error) => {
-  console.error(error);
+async function renderStatus() {
+  const root = document.getElementById("status-root");
+  if (!root) return;
+  const statusUrl = root.dataset.statusJson;
+  const registryUrl = root.dataset.registryJson;
+  if (!statusUrl || !registryUrl) return;
+  const [statusResponse, registryResponse] = await Promise.all([fetch(statusUrl), fetch(registryUrl)]);
+  const statusRows = await statusResponse.json();
+  const registryRows = await registryResponse.json();
+  const titleById = new Map(registryRows.map((row) => [row.id, row.title]));
+  const grouped = new Map();
+  for (const row of statusRows) {
+    const list = grouped.get(row.status) ?? [];
+    list.push(row);
+    grouped.set(row.status, list);
+  }
+  const ordered = ["formalized", "incomplete", "blocked", "missing"];
+  root.innerHTML = ordered.map((status) => {
+    const rows = grouped.get(status) ?? [];
+    const items = rows.length > 0
+      ? rows.map((row) => '<li><code>' + escapeHtml(row.id) + '</code> · ' + escapeHtml(titleById.get(row.id) ?? row.id) + '</li>').join("")
+      : '<li><em>none</em></li>';
+    return '<section><h2>' + escapeHtml(status) + '</h2><ul>' + items + '</ul></section>';
+  }).join("");
+}
+
+Promise.allSettled([renderGraph(), renderStatus()]).then((results) => {
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error(result.reason);
+    }
+  }
 });
 `;
 
