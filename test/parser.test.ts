@@ -105,13 +105,14 @@ test("build standalone site output", async () => {
   const registry = await buildSite("test/fixtures/project", outDir);
   assert.equal(registry.entries.length, 2);
   const generated = (await readdir(path.join(outDir, "generated"))).sort();
-  assert.deepEqual(generated, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "site-manifest.json", "status.json"]);
+  assert.deepEqual(generated, ["benchmark-summary.json", "dep-graph.json", "entry-context", "entry-review", "registry.json", "site-manifest.json", "status.json"]);
   const indexHtml = await readOutputFile(path.join(outDir, "index.html"), "utf-8");
   assert.match(indexHtml, /Demo Project/);
   assert.match(indexHtml, /Open dependency graph/);
   assert.match(indexHtml, /Open status summary/);
   assert.match(indexHtml, /Clusters/);
   assert.match(indexHtml, /clusters\/sylow\.html/);
+  assert.match(indexHtml, /id="benchmark-summary"/);
   const graphHtml = await readOutputFile(path.join(outDir, "graph.html"), "utf-8");
   assert.match(graphHtml, /Dependency Graph/);
   assert.match(graphHtml, /id="graph-root"/);
@@ -132,6 +133,8 @@ test("build standalone site output", async () => {
   const manifest = await readOutputFile(path.join(outDir, "generated", "site-manifest.json"), "utf-8");
   assert.match(manifest, /"overview": "index.html"/);
   assert.match(manifest, /"page": "clusters\/sylow.html"/);
+  const benchmarkSummary = await readOutputFile(path.join(outDir, "generated", "benchmark-summary.json"), "utf-8");
+  assert.match(benchmarkSummary, /"benchmark_id": "pfr"/);
 });
 
 test("load benchmark manifests", async () => {

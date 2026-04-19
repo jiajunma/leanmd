@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import MarkdownIt from "markdown-it";
 import { buildEntryContextBundle, buildEntryReviewBundle } from "./context.js";
@@ -112,6 +112,11 @@ function renderOverviewPage(registry: Registry): string {
         `<li><a href="/clusters/${escapeHtml(clusterOutputName(cluster))}">${escapeHtml(cluster)}</a> (${entries.length})</li>`,
     )
     .join("\n");
+  let benchmarkSummary = "";
+  if (fm.project_id) {
+    const summaryPath = path.join("benchmarks", "reports", `${fm.project_id}-summary.json`);
+    benchmarkSummary = `<div id="benchmark-summary" data-summary-json="/generated/benchmark-summary.json"></div>`;
+  }
 
   const summary = `
     <header>
@@ -136,6 +141,7 @@ function renderOverviewPage(registry: Registry): string {
       <h2>Clusters</h2>
       <ul>${clusterList}</ul>
     </section>
+    ${benchmarkSummary}
   `;
 
   return basePage(fm.title, `${summary}\n${introSections}`);
@@ -307,7 +313,25 @@ async function renderStatus() {
   }).join("");
 }
 
-Promise.allSettled([renderGraph(), renderStatus()]).then((results) => {
+async function renderBenchmarkSummary() {
+  const root = document.getElementById("benchmark-summary");
+  if (!root) return;
+  const url = root.dataset.summaryJson;
+  if (!url) return;
+  const response = await fetch(url);
+  if (!response.ok) return;
+  const summary = await response.json();
+  root.innerHTML =
+    '<section><h2>Benchmark Summary</h2>' +
+    '<p>our pipeline: <strong>' + (summary.timing_comparison.our_pipeline_ms ?? 'n/a') + ' ms</strong></p>' +
+    '<p>leanblueprint web: <strong>' + (summary.timing_comparison.leanblueprint_web_ms ?? 'n/a') + ' ms</strong></p>' +
+    '<p>speedup factor: <strong>' + (summary.timing_comparison.speedup_factor ?? 'n/a') + '</strong></p>' +
+    '<p>entry count difference: <strong>' + summary.structure_comparison.entry_count_difference + '</strong></p>' +
+    '<p>informal edge difference: <strong>' + summary.structure_comparison.informal_edge_count_difference + '</strong></p>' +
+    '</section>';
+}
+
+Promise.allSettled([renderGraph(), renderStatus(), renderBenchmarkSummary()]).then((results) => {
   for (const result of results) {
     if (result.status === "rejected") {
       console.error(result.reason);
@@ -389,6 +413,14 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
     JSON.stringify(buildSiteManifest(registry), null, 2),
     "utf-8",
   );
+
+  const benchmarkSummaryPath = path.join("benchmarks", "reports", `${registry.overview.frontMatter.project_id}-summary.json`);
+  try {
+    const benchmarkSummary = await readFile(benchmarkSummaryPath, "utf-8");
+    await writeFile(path.join(generatedDir, "benchmark-summary.json"), benchmarkSummary, "utf-8");
+  } catch {
+    // Missing benchmark summary is acceptable for non-benchmark projects.
+  }
 
   return registry;
 }
