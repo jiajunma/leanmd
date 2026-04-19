@@ -1,6 +1,10 @@
 name = "leanmddeps"
 version = "0.1.0"
-defaultTargets = ["Leanmddeps"]
+defaultTargets = ["collectdeps"]
 
 [[lean_lib]]
 name = "Leanmddeps"
+
+[[lean_exe]]
+name = "collectdeps"
+root = "Main"
