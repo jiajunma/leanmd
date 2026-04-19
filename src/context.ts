@@ -9,8 +9,8 @@ export interface EntryContextBundle {
   status: string;
   blocked_by: string[];
   lean?: {
-    main_file: string;
-    main_decl: string;
+    main_file?: string;
+    main_decl?: string;
   };
   sections: {
     informal_statement: string;

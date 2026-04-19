@@ -226,7 +226,6 @@ export async function migrateBlueprintPath(
   for (const file of sourceFiles) {
     const cluster =
       clusterOverride ??
-      path.basename(path.dirname(file)) ??
       path.basename(file, path.extname(file));
     const entries = await migrateBlueprintFile(file, cluster);
     all.push(...entries);

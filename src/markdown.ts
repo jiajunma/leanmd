@@ -54,13 +54,19 @@ function parseEntryFrontMatter(raw: unknown): EntryFrontMatter {
   }
 
   const leanRaw = data.lean as Record<string, unknown> | undefined;
-  const lean =
-    leanRaw && typeof leanRaw === "object"
-      ? {
-          main_file: expectString(leanRaw.main_file, "lean.main_file"),
-          main_decl: expectString(leanRaw.main_decl, "lean.main_decl"),
-        }
-      : undefined;
+  let lean: EntryFrontMatter["lean"] | undefined;
+  if (leanRaw && typeof leanRaw === "object") {
+    const parsedLean: EntryFrontMatter["lean"] = {};
+    if (leanRaw.main_file !== undefined) {
+      parsedLean.main_file = expectString(leanRaw.main_file, "lean.main_file");
+    }
+    if (leanRaw.main_decl !== undefined) {
+      parsedLean.main_decl = expectString(leanRaw.main_decl, "lean.main_decl");
+    }
+    if (parsedLean.main_file || parsedLean.main_decl) {
+      lean = parsedLean;
+    }
+  }
 
   return {
     id: expectString(data.id, "id"),

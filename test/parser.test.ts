@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { buildBenchmarkReport } from "../src/benchmark-report.js";
+import { runBenchmarkPipeline } from "../src/benchmark-run.js";
 import { materializeBenchmarkProject } from "../src/materialize.js";
 import { migrateBlueprintFile, migrateBlueprintPath, writeMigratedEntries } from "../src/blueprint.js";
 import { compareBlueprintPathToProject } from "../src/compare.js";
@@ -14,6 +15,8 @@ import { exportProject } from "../src/export.js";
 import { countActiveSorry } from "../src/lean.js";
 import {
   loadFormalDependencyOverrides,
+  loadLeanmdConfig,
+  resolveFormalDependencyProvider,
   restrictFormalDependenciesToKnownIds,
 } from "../src/lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
@@ -80,7 +83,7 @@ test("migrate blueprint directory input", async () => {
   assert.equal(entries.length, 2);
   const theorem = entries.find((entry) => entry.id === "thm:sylow_exists");
   assert.ok(theorem);
-  assert.equal(theorem.cluster, "blueprint");
+  assert.equal(theorem.cluster, "sample");
 });
 
 test("count active sorry excludes comments and strings", () => {
@@ -144,6 +147,10 @@ test("load formal dependency overrides", async () => {
   ]);
   const filtered = restrictFormalDependenciesToKnownIds(overrides, ["def:p_group", "thm:sylow_exists"]);
   assert.deepEqual(filtered["thm:sylow_exists"], ["def:p_group"]);
+  const config = await loadLeanmdConfig("test/fixtures/project");
+  assert.equal(config.formal_dependency_provider, "override");
+  const provider = await resolveFormalDependencyProvider("test/fixtures/project");
+  assert.equal(provider.name, "override");
 });
 
 test("export machine-readable project artifacts", async () => {
@@ -214,6 +221,20 @@ test("materialize benchmark project", async () => {
   const overview = await readOutputFile(path.join(outDir, "overview.md"), "utf-8");
   assert.match(overview, /project_id: pfr/);
   assert.match(overview, /Published blueprint/);
+});
+
+test("run benchmark pipeline", async () => {
+  const outDir = await mkdtemp(path.join(os.tmpdir(), "leanmd-benchmark-run-"));
+  const report = await runBenchmarkPipeline(
+    "benchmarks",
+    "pfr",
+    "test/fixtures/blueprint",
+    outDir,
+  );
+  assert.equal(report.benchmark_id, "pfr");
+  assert.equal(report.counts.entries, 2);
+  assert.ok(report.timings_ms.total >= 0);
+  assert.deepEqual(report.comparison.missing_in_target, []);
 });
 
 test("build sync preview", async () => {

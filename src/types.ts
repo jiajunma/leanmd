@@ -3,8 +3,8 @@ export type EntryKind = "theorem" | "definition" | "lemma" | "proposition";
 export type EntryStatus = "missing" | "incomplete" | "blocked" | "formalized";
 
 export interface LeanBinding {
-  main_file: string;
-  main_decl: string;
+  main_file?: string;
+  main_decl?: string;
 }
 
 export interface DependsOn {

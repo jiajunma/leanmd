@@ -86,6 +86,7 @@ export function buildRegistryData(registry: Registry) {
     kind: entry.document.frontMatter.kind,
     cluster: entry.document.frontMatter.cluster,
     status: entry.computedStatus,
+    formal_dependency_provider: registry.formalDependencyProvider,
   }));
 }
 

@@ -2,8 +2,9 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { countActiveSorryInFile, fileExists } from "./lean.js";
 import {
-  overrideFormalDependencyProvider,
+  type FormalDependencyProviderName,
   restrictFormalDependenciesToKnownIds,
+  resolveFormalDependencyProvider,
 } from "./lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import type {
@@ -35,6 +36,7 @@ export interface Registry {
   overview: ParsedOverviewDocument;
   entries: RegistryEntry[];
   byId: Map<string, RegistryEntry>;
+  formalDependencyProvider: FormalDependencyProviderName;
 }
 
 export interface CheckIssue {
@@ -140,7 +142,7 @@ async function computeBaseStatus(
   rootDir: string,
 ): Promise<{ status: EntryStatus; activeSorryCount: number | null }> {
   const lean = entry.frontMatter.lean;
-  if (!lean) {
+  if (!lean || !lean.main_file) {
     return { status: "missing", activeSorryCount: null };
   }
 
@@ -172,9 +174,10 @@ function computeStatus(
 
 export async function buildRegistry(rootDir: string): Promise<Registry> {
   const overview = await loadOverview(rootDir);
+  const provider = await resolveFormalDependencyProvider(rootDir);
   const [entryDocs, rawFormalOverrides] = await Promise.all([
     loadEntries(rootDir),
-    overrideFormalDependencyProvider.load(rootDir),
+    provider.load(rootDir),
   ]);
   const formalOverrides = restrictFormalDependenciesToKnownIds(
     rawFormalOverrides,
@@ -231,6 +234,7 @@ export async function buildRegistry(rootDir: string): Promise<Registry> {
     overview,
     entries,
     byId,
+    formalDependencyProvider: provider.name,
   };
 }
 
@@ -291,15 +295,17 @@ export async function checkRegistry(rootDir: string): Promise<RegistryCheckResul
 
     if (entry.document.frontMatter.lean) {
       const { main_file, main_decl } = entry.document.frontMatter.lean;
-      if (!main_file.trim()) {
+      if (main_file !== undefined && !main_file.trim()) {
         pushIssue(issues, "error", entryPath, "Lean binding requires a non-empty main_file.");
       }
-      if (!main_decl.trim()) {
+      if (main_decl !== undefined && !main_decl.trim()) {
         pushIssue(issues, "error", entryPath, "Lean binding requires a non-empty main_decl.");
       }
-      const fullPath = path.isAbsolute(main_file) ? main_file : path.join(rootDir, main_file);
-      if (!(await fileExists(fullPath))) {
-        pushIssue(issues, "error", entryPath, `Lean main_file does not exist: '${main_file}'.`);
+      if (main_file) {
+        const fullPath = path.isAbsolute(main_file) ? main_file : path.join(rootDir, main_file);
+        if (!(await fileExists(fullPath))) {
+          pushIssue(issues, "error", entryPath, `Lean main_file does not exist: '${main_file}'.`);
+        }
       }
     }
   }
