@@ -47,6 +47,7 @@ async function main(): Promise<void> {
       JSON.stringify(
         {
           overview: result.registry.overview.frontMatter,
+          formal_dependency_provider: result.registry.formalDependencyProvider,
           entries: result.registry.entries.map((entry) => ({
             id: entry.document.frontMatter.id,
             status: entry.computedStatus,

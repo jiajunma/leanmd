@@ -1,0 +1,6 @@
+{
+  "rootDir": "test/fixtures/project-lsp",
+  "entryIds": [
+    "thm:foo"
+  ]
+}

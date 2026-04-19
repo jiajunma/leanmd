@@ -5,6 +5,7 @@ import {
   type FormalDependencyProviderName,
   restrictFormalDependenciesToKnownIds,
   resolveFormalDependencyProvider,
+  writeLeanLspMcpRequest,
 } from "./lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import type {
@@ -175,10 +176,14 @@ function computeStatus(
 export async function buildRegistry(rootDir: string): Promise<Registry> {
   const overview = await loadOverview(rootDir);
   const provider = await resolveFormalDependencyProvider(rootDir);
-  const [entryDocs, rawFormalOverrides] = await Promise.all([
-    loadEntries(rootDir),
-    provider.load(rootDir),
-  ]);
+  const entryDocs = await loadEntries(rootDir);
+  if (provider.name === "lean-lsp-mcp") {
+    await writeLeanLspMcpRequest(
+      rootDir,
+      entryDocs.map((document) => document.frontMatter.id),
+    );
+  }
+  const rawFormalOverrides = await provider.load(rootDir);
   const formalOverrides = restrictFormalDependenciesToKnownIds(
     rawFormalOverrides,
     entryDocs.map((document) => document.frontMatter.id),

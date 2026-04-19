@@ -18,6 +18,11 @@ export interface LeanmdConfig {
   formal_dependency_provider?: FormalDependencyProviderName;
 }
 
+export interface LeanLspMcpRequest {
+  rootDir: string;
+  entryIds: string[];
+}
+
 export async function loadFormalDependencyOverrides(rootDir: string): Promise<FormalDependencyOverrides> {
   const overridePath = path.join(rootDir, ".leanmd", "formal-deps.json");
   if (!(await fileExists(overridePath))) {
@@ -87,7 +92,23 @@ export const overrideFormalDependencyProvider: FormalDependencyProvider = {
 export const leanLspMcpFormalDependencyProvider: FormalDependencyProvider = {
   name: "lean-lsp-mcp",
   implemented: false,
-  async load(_rootDir: string): Promise<FormalDependencyOverrides> {
+  async load(rootDir: string): Promise<FormalDependencyOverrides> {
+    const resultsPath = path.join(rootDir, ".leanmd", "lean-lsp-mcp-formal-deps.json");
+    if (await fileExists(resultsPath)) {
+      const content = await readFile(resultsPath, "utf-8");
+      const data = JSON.parse(content) as unknown;
+      if (data === null || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error("lean-lsp-mcp-formal-deps.json must contain an object mapping entry ids to string arrays.");
+      }
+      const result: FormalDependencyOverrides = {};
+      for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+        if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+          throw new Error(`lean-lsp-mcp result entry '${key}' must be an array of strings.`);
+        }
+        result[key] = value;
+      }
+      return result;
+    }
     return {};
   },
 };
@@ -98,4 +119,18 @@ export async function resolveFormalDependencyProvider(rootDir: string): Promise<
     return leanLspMcpFormalDependencyProvider;
   }
   return overrideFormalDependencyProvider;
+}
+
+export async function writeLeanLspMcpRequest(rootDir: string, entryIds: string[]): Promise<string> {
+  const requestDir = path.join(rootDir, ".leanmd");
+  await import("node:fs/promises").then((fs) => fs.mkdir(requestDir, { recursive: true }));
+  const outPath = path.join(requestDir, "lean-lsp-mcp-request.json");
+  const request: LeanLspMcpRequest = {
+    rootDir,
+    entryIds: [...entryIds].sort(),
+  };
+  await import("node:fs/promises").then((fs) =>
+    fs.writeFile(outPath, JSON.stringify(request, null, 2), "utf-8"),
+  );
+  return outPath;
 }

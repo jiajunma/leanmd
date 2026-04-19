@@ -21,6 +21,7 @@ import {
   loadLeanmdConfig,
   resolveFormalDependencyProvider,
   restrictFormalDependenciesToKnownIds,
+  writeLeanLspMcpRequest,
 } from "../src/lsp.js";
 import { parseEntryDocument, parseOverviewDocument } from "../src/markdown.js";
 import { buildSite } from "../src/render.js";
@@ -105,7 +106,7 @@ test("build standalone site output", async () => {
   const registry = await buildSite("test/fixtures/project", outDir);
   assert.equal(registry.entries.length, 2);
   const generated = (await readdir(path.join(outDir, "generated"))).sort();
-  assert.deepEqual(generated, ["benchmark-summary.json", "dep-graph.json", "entry-context", "entry-review", "registry.json", "site-manifest.json", "status.json"]);
+  assert.deepEqual(generated, ["dep-graph.json", "entry-context", "entry-review", "registry.json", "site-manifest.json", "status.json"]);
   const indexHtml = await readOutputFile(path.join(outDir, "index.html"), "utf-8");
   assert.match(indexHtml, /Demo Project/);
   assert.match(indexHtml, /Open dependency graph/);
@@ -133,8 +134,6 @@ test("build standalone site output", async () => {
   const manifest = await readOutputFile(path.join(outDir, "generated", "site-manifest.json"), "utf-8");
   assert.match(manifest, /"overview": "index.html"/);
   assert.match(manifest, /"page": "clusters\/sylow.html"/);
-  const benchmarkSummary = await readOutputFile(path.join(outDir, "generated", "benchmark-summary.json"), "utf-8");
-  assert.match(benchmarkSummary, /"benchmark_id": "pfr"/);
 });
 
 test("load benchmark manifests", async () => {
@@ -168,6 +167,10 @@ test("select lean-lsp-mcp provider and warn", async () => {
       issue.message.includes("lean-lsp-mcp"),
     ),
   );
+  const requestPath = await writeLeanLspMcpRequest("test/fixtures/project-lsp", ["thm:foo"]);
+  const request = await readOutputFile(requestPath, "utf-8");
+  assert.match(request, /"entryIds": \[/);
+  assert.match(request, /"thm:foo"/);
 });
 
 test("export machine-readable project artifacts", async () => {
