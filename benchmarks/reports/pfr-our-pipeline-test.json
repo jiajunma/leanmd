@@ -1,0 +1,44 @@
+{
+  "benchmark_id": "pfr",
+  "output_root": "/var/folders/gm/0xrvggdd7v78wd89mpf6w5ch0000gn/T/leanmd-benchmark-run-0fcgXL",
+  "timings_ms": {
+    "materialize": 1.3077920000000063,
+    "build": 8.022832999999991,
+    "compare": 1.1653749999999974,
+    "total": 10.495999999999995
+  },
+  "counts": {
+    "entries": 2,
+    "clusters": 1
+  },
+  "comparison": {
+    "source_entry_count": 2,
+    "target_entry_count": 2,
+    "source_ids": [
+      "def:p_group",
+      "thm:sylow_exists"
+    ],
+    "target_ids": [
+      "def:p_group",
+      "thm:sylow_exists"
+    ],
+    "missing_in_target": [],
+    "missing_in_source": [],
+    "kind_counts": {
+      "source": {
+        "definition": 1,
+        "theorem": 1
+      },
+      "target": {
+        "definition": 1,
+        "theorem": 1
+      }
+    },
+    "informal_edges": {
+      "source_count": 1,
+      "target_count": 1,
+      "missing_in_target": [],
+      "missing_in_source": []
+    }
+  }
+}

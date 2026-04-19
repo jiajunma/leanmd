@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { writeBenchmarkArtifact } from "../src/benchmark-artifact.js";
+import { buildBenchmarkDiffReport } from "../src/benchmark-diff-report.js";
 import { buildBenchmarkReport } from "../src/benchmark-report.js";
 import { runBenchmarkPipeline } from "../src/benchmark-run.js";
 import { materializeBenchmarkProject } from "../src/materialize.js";
@@ -221,6 +222,18 @@ test("build benchmark report", async () => {
   assert.equal(report.comparison.source_entry_count, 2);
   assert.deepEqual(report.comparison.missing_in_target, []);
   assert.equal(report.comparison.informal_edges.source_count, 1);
+});
+
+test("build benchmark diff report", async () => {
+  const report = await buildBenchmarkDiffReport(
+    "benchmarks",
+    "pfr",
+    "test/fixtures/blueprint",
+    "test/fixtures/project",
+  );
+  assert.equal(report.benchmark.id, "pfr");
+  assert.equal(report.summary.entry_count_difference, 0);
+  assert.equal(report.summary.informal_edge_count_difference, 0);
 });
 
 test("materialize benchmark project", async () => {
