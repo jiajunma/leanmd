@@ -107,7 +107,8 @@ test("build standalone site output", async () => {
   assert.match(indexHtml, /clusters\/sylow\.html/);
   const graphHtml = await readOutputFile(path.join(outDir, "graph.html"), "utf-8");
   assert.match(graphHtml, /Dependency Graph/);
-  assert.match(graphHtml, /<svg /);
+  assert.match(graphHtml, /id="graph-root"/);
+  assert.match(graphHtml, /assets\/app.js/);
   assert.match(graphHtml, /Solid edges = formal, dashed edges = informal/);
   const statusHtml = await readOutputFile(path.join(outDir, "status.html"), "utf-8");
   assert.match(statusHtml, /Status Summary/);

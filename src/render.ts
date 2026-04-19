@@ -40,6 +40,7 @@ function basePage(title: string, body: string): string {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
     <link rel="stylesheet" href="/assets/site.css" />
+    <script type="module" src="/assets/app.js"></script>
   </head>
   <body>
     <main class="page">
@@ -141,63 +142,6 @@ function renderOverviewPage(registry: Registry): string {
 }
 
 function renderGraphPage(registry: Registry): string {
-  const graph = buildGraphData(registry);
-  const nodeSpacing = 96;
-  const width = 900;
-  const leftX = 120;
-  const rectWidth = 220;
-  const rectHeight = 44;
-  const topY = 60;
-  const nodeIndex = new Map(graph.nodes.map((node, index) => [node.id, index]));
-  const svgHeight = Math.max(180, topY + graph.nodes.length * nodeSpacing);
-
-  const edgeSvg = graph.edges
-    .map((edge) => {
-      const fromIndex = nodeIndex.get(edge.from) ?? 0;
-      const toIndex = nodeIndex.get(edge.to) ?? 0;
-      const fromY = topY + fromIndex * nodeSpacing + rectHeight / 2;
-      const toY = topY + toIndex * nodeSpacing + rectHeight / 2;
-      const strokeDash = edge.source === "informal" ? ' stroke-dasharray="6 4"' : "";
-      return `<line x1="${leftX + rectWidth}" y1="${fromY}" x2="${leftX}" y2="${toY}" stroke="#8a8678" stroke-width="2"${strokeDash} />`;
-    })
-    .join("\n");
-
-  const nodeSvg = graph.nodes
-    .map((node, index) => {
-      const y = topY + index * nodeSpacing;
-      const fill =
-        node.status === "formalized"
-          ? "#d7f0d5"
-          : node.status === "incomplete"
-            ? "#f8d7d7"
-            : node.status === "blocked"
-              ? "#f6e9c7"
-              : "#ececec";
-      return `
-        <g>
-          <rect x="${leftX}" y="${y}" width="${rectWidth}" height="${rectHeight}" rx="8" fill="${fill}" stroke="#5d5a50" />
-          <text x="${leftX + 12}" y="${y + 18}" font-size="12" font-family="sans-serif" fill="#444">${escapeHtml(node.kind)}</text>
-          <text x="${leftX + 12}" y="${y + 34}" font-size="14" font-family="sans-serif" fill="#111">${escapeHtml(node.id)}</text>
-        </g>
-      `;
-    })
-    .join("\n");
-
-  const nodeItems = graph.nodes
-    .map(
-      (node) =>
-        `<li><code>${escapeHtml(node.id)}</code> · ${escapeHtml(node.kind)} · ${escapeHtml(node.status)}</li>`,
-    )
-    .join("\n");
-  const edgeItems = graph.edges
-    .map(
-      (edge) =>
-        `<li><code>${escapeHtml(edge.from)}</code> → <code>${escapeHtml(edge.to)}</code> (${escapeHtml(
-          edge.source,
-        )})</li>`,
-    )
-    .join("\n");
-
   return basePage(
     `${registry.overview.frontMatter.title} Graph`,
     `
@@ -209,18 +153,11 @@ function renderGraphPage(registry: Registry): string {
       </header>
       <section>
         <h2>SVG View</h2>
-        <svg viewBox="0 0 ${width} ${svgHeight}" width="100%" height="${svgHeight}" role="img" aria-label="Dependency graph">
-          ${edgeSvg}
-          ${nodeSvg}
-        </svg>
+        <div id="graph-root" data-graph-json="/generated/dep-graph.json"></div>
       </section>
       <section>
         <h2>Nodes</h2>
-        <ul>${nodeItems}</ul>
-      </section>
-      <section>
-        <h2>Edges</h2>
-        <ul>${edgeItems}</ul>
+        <div id="graph-summary"></div>
       </section>
     `,
   );
@@ -312,6 +249,66 @@ h1, h2 { line-height: 1.15; }
 code { background: #f0efe8; padding: 0.1rem 0.3rem; border-radius: 4px; }
 .status { margin-left: 0.5rem; color: #666; }
 section { margin-top: 2rem; }
+#graph-root svg { border: 1px solid #d8d3c7; background: #fffdf7; border-radius: 12px; }
+`;
+
+const SITE_APP_JS = `
+function escapeHtml(text) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+async function renderGraph() {
+  const root = document.getElementById("graph-root");
+  if (!root) return;
+  const summary = document.getElementById("graph-summary");
+  const url = root.dataset.graphJson;
+  if (!url) return;
+  const response = await fetch(url);
+  const graph = await response.json();
+  const nodes = graph.nodes ?? [];
+  const edges = graph.edges ?? [];
+  const nodeSpacing = 96;
+  const width = 900;
+  const leftX = 120;
+  const rectWidth = 220;
+  const rectHeight = 44;
+  const topY = 60;
+  const svgHeight = Math.max(180, topY + nodes.length * nodeSpacing);
+  const nodeIndex = new Map(nodes.map((node, index) => [node.id, index]));
+  const edgeSvg = edges.map((edge) => {
+    const fromIndex = nodeIndex.get(edge.from) ?? 0;
+    const toIndex = nodeIndex.get(edge.to) ?? 0;
+    const fromY = topY + fromIndex * nodeSpacing + rectHeight / 2;
+    const toY = topY + toIndex * nodeSpacing + rectHeight / 2;
+    const strokeDash = edge.source === "informal" ? ' stroke-dasharray="6 4"' : "";
+    return '<line x1="' + (leftX + rectWidth) + '" y1="' + fromY + '" x2="' + leftX + '" y2="' + toY + '" stroke="#8a8678" stroke-width="2"' + strokeDash + ' />';
+  }).join("\\n");
+  const nodeSvg = nodes.map((node, index) => {
+    const y = topY + index * nodeSpacing;
+    const fill =
+      node.status === "formalized" ? "#d7f0d5" :
+      node.status === "incomplete" ? "#f8d7d7" :
+      node.status === "blocked" ? "#f6e9c7" : "#ececec";
+    return '<g>' +
+      '<rect x="' + leftX + '" y="' + y + '" width="' + rectWidth + '" height="' + rectHeight + '" rx="8" fill="' + fill + '" stroke="#5d5a50" />' +
+      '<text x="' + (leftX + 12) + '" y="' + (y + 18) + '" font-size="12" font-family="sans-serif" fill="#444">' + escapeHtml(node.kind) + '</text>' +
+      '<text x="' + (leftX + 12) + '" y="' + (y + 34) + '" font-size="14" font-family="sans-serif" fill="#111">' + escapeHtml(node.id) + '</text>' +
+      '</g>';
+  }).join("\\n");
+  root.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + svgHeight + '" width="100%" height="' + svgHeight + '" role="img" aria-label="Dependency graph">' + edgeSvg + nodeSvg + '</svg>';
+  if (summary) {
+    const items = nodes.map((node) => '<li><code>' + escapeHtml(node.id) + '</code> · ' + escapeHtml(node.kind) + ' · ' + escapeHtml(node.status) + '</li>').join("");
+    summary.innerHTML = '<ul>' + items + '</ul>';
+  }
+}
+
+renderGraph().catch((error) => {
+  console.error(error);
+});
 `;
 
 export async function buildSite(rootDir: string, outDir: string): Promise<Registry> {
@@ -334,6 +331,7 @@ export async function buildSite(rootDir: string, outDir: string): Promise<Regist
   await writeFile(path.join(outDir, "graph.html"), renderGraphPage(registry), "utf-8");
   await writeFile(path.join(outDir, "status.html"), renderStatusPage(registry), "utf-8");
   await writeFile(path.join(assetsDir, "site.css"), SITE_CSS, "utf-8");
+  await writeFile(path.join(assetsDir, "app.js"), SITE_APP_JS, "utf-8");
 
   const graphData = buildGraphData(registry);
   for (const entry of registry.entries) {
