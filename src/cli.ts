@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
 import process from "node:process";
+import { writeBenchmarkArtifact } from "./benchmark-artifact.js";
+import { runLeanBlueprintWebBaseline } from "./benchmark-baseline.js";
 import { buildBenchmarkReport } from "./benchmark-report.js";
 import { loadBenchmarkById, loadBenchmarks } from "./benchmarks.js";
 import { runBenchmarkPipeline } from "./benchmark-run.js";
@@ -18,7 +20,7 @@ async function main(): Promise<void> {
   const [, , command, target, maybeOutDir, ...rest] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|sync|sync-write|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report|materialize-benchmark|benchmark-run> <path> [arg]");
+    console.error("Usage: leanmd <entry|overview|check|sync|sync-write|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report|materialize-benchmark|benchmark-run|benchmark-baseline-blueprint> <path> [arg]");
     process.exitCode = 1;
     return;
   }
@@ -220,7 +222,24 @@ async function main(): Promise<void> {
       return;
     }
     const report = await runBenchmarkPipeline(target, maybeOutDir, blueprintPath, outputRoot);
+    await writeBenchmarkArtifact(maybeOutDir, "our-pipeline", report);
     console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  if (command === "benchmark-baseline-blueprint") {
+    const [pythonExecutable] = rest;
+    if (!maybeOutDir || !pythonExecutable) {
+      console.error("Usage: leanmd benchmark-baseline-blueprint <benchmark-id> <blueprint-dir> <python-executable>");
+      process.exitCode = 1;
+      return;
+    }
+    const report = await runLeanBlueprintWebBaseline(target, maybeOutDir, pythonExecutable);
+    await writeBenchmarkArtifact(target, "leanblueprint-web", report);
+    console.log(JSON.stringify(report, null, 2));
+    if (report.exit_code !== 0) {
+      process.exitCode = report.exit_code;
+    }
     return;
   }
 

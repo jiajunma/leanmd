@@ -5,6 +5,7 @@ import { cp, mkdtemp, readdir, readFile as readOutputFile, writeFile } from "nod
 import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
+import { writeBenchmarkArtifact } from "../src/benchmark-artifact.js";
 import { buildBenchmarkReport } from "../src/benchmark-report.js";
 import { runBenchmarkPipeline } from "../src/benchmark-run.js";
 import { materializeBenchmarkProject } from "../src/materialize.js";
@@ -251,6 +252,9 @@ test("run benchmark pipeline", async () => {
   assert.equal(report.counts.entries, 2);
   assert.ok(report.timings_ms.total >= 0);
   assert.deepEqual(report.comparison.missing_in_target, []);
+  const artifactPath = await writeBenchmarkArtifact("pfr", "our-pipeline-test", report);
+  const persisted = await readOutputFile(artifactPath, "utf-8");
+  assert.match(persisted, /"benchmark_id": "pfr"/);
 });
 
 test("build sync preview", async () => {
