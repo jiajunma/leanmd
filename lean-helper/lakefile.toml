@@ -1,0 +1,6 @@
+name = "leanmddeps"
+version = "0.1.0"
+defaultTargets = ["Leanmddeps"]
+
+[[lean_lib]]
+name = "Leanmddeps"
