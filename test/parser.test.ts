@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { buildBenchmarkReport } from "../src/benchmark-report.js";
+import { materializeBenchmarkProject } from "../src/materialize.js";
 import { migrateBlueprintFile, migrateBlueprintPath, writeMigratedEntries } from "../src/blueprint.js";
 import { compareBlueprintPathToProject } from "../src/compare.js";
 import { buildEntryContextBundle, buildEntryReviewBundle } from "../src/context.js";
@@ -196,6 +197,23 @@ test("build benchmark report", async () => {
   assert.equal(report.benchmark.id, "pfr");
   assert.equal(report.comparison.source_entry_count, 2);
   assert.deepEqual(report.comparison.missing_in_target, []);
+});
+
+test("materialize benchmark project", async () => {
+  const outDir = await mkdtemp(path.join(os.tmpdir(), "leanmd-materialize-"));
+  const result = await materializeBenchmarkProject(
+    "benchmarks",
+    "pfr",
+    "test/fixtures/blueprint",
+    outDir,
+  );
+  assert.equal(result.benchmark.id, "pfr");
+  assert.equal(result.entryCount, 2);
+  const files = (await readdir(path.join(outDir, "entries"))).sort();
+  assert.deepEqual(files, ["p_group.md", "sylow_exists.md"]);
+  const overview = await readOutputFile(path.join(outDir, "overview.md"), "utf-8");
+  assert.match(overview, /project_id: pfr/);
+  assert.match(overview, /Published blueprint/);
 });
 
 test("build sync preview", async () => {

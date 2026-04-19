@@ -7,6 +7,7 @@ import { migrateBlueprintPath, writeMigratedEntries } from "./blueprint.js";
 import { compareBlueprintPathToProject } from "./compare.js";
 import { loadEntryContextBundle, loadEntryReviewBundle } from "./context.js";
 import { exportProject } from "./export.js";
+import { materializeBenchmarkProject } from "./materialize.js";
 import { parseEntryDocument, parseOverviewDocument } from "./markdown.js";
 import { buildSite } from "./render.js";
 import { checkRegistry } from "./registry.js";
@@ -16,7 +17,7 @@ async function main(): Promise<void> {
   const [, , command, target, maybeOutDir, ...rest] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|sync|sync-write|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report> <path> [arg]");
+    console.error("Usage: leanmd <entry|overview|check|sync|sync-write|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report|materialize-benchmark> <path> [arg]");
     process.exitCode = 1;
     return;
   }
@@ -195,6 +196,18 @@ async function main(): Promise<void> {
     }
     const report = await buildBenchmarkReport(target, maybeOutDir, blueprintPath, projectRoot);
     console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  if (command === "materialize-benchmark") {
+    const [blueprintPath, outputRoot] = rest;
+    if (!maybeOutDir || !blueprintPath || !outputRoot) {
+      console.error("Usage: leanmd materialize-benchmark <benchmarks-dir> <benchmark-id> <blueprint-path> <out-dir>");
+      process.exitCode = 1;
+      return;
+    }
+    const result = await materializeBenchmarkProject(target, maybeOutDir, blueprintPath, outputRoot);
+    console.log(JSON.stringify(result, null, 2));
     return;
   }
 
