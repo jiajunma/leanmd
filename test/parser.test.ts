@@ -153,6 +153,17 @@ test("load formal dependency overrides", async () => {
   assert.equal(provider.name, "override");
 });
 
+test("select lean-lsp-mcp provider and warn", async () => {
+  const provider = await resolveFormalDependencyProvider("test/fixtures/project-lsp");
+  assert.equal(provider.name, "lean-lsp-mcp");
+  const result = await checkRegistry("test/fixtures/project-lsp");
+  assert.ok(
+    result.issues.some((issue) =>
+      issue.message.includes("lean-lsp-mcp"),
+    ),
+  );
+});
+
 test("export machine-readable project artifacts", async () => {
   const outDir = await mkdtemp(path.join(os.tmpdir(), "leanmd-export-"));
   const registry = await exportProject("test/fixtures/project", outDir);

@@ -252,6 +252,15 @@ export async function checkRegistry(rootDir: string): Promise<RegistryCheckResul
   const issues: CheckIssue[] = [];
   const seen = new Set<string>();
 
+  if (registry.formalDependencyProvider === "lean-lsp-mcp") {
+    pushIssue(
+      issues,
+      "warning",
+      registry.overview.path,
+      "Formal dependency provider 'lean-lsp-mcp' is selected, but the current implementation is only a placeholder.",
+    );
+  }
+
   for (const entry of registry.entries) {
     const entryPath = entry.document.path;
     const id = entry.document.frontMatter.id;

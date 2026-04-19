@@ -10,6 +10,7 @@ export type FormalDependencyProviderName = "override" | "lean-lsp-mcp";
 
 export interface FormalDependencyProvider {
   name: FormalDependencyProviderName;
+  implemented: boolean;
   load(rootDir: string): Promise<FormalDependencyOverrides>;
 }
 
@@ -79,11 +80,13 @@ export function restrictFormalDependenciesToKnownIds(
 
 export const overrideFormalDependencyProvider: FormalDependencyProvider = {
   name: "override",
+  implemented: true,
   load: loadFormalDependencyOverrides,
 };
 
 export const leanLspMcpFormalDependencyProvider: FormalDependencyProvider = {
   name: "lean-lsp-mcp",
+  implemented: false,
   async load(_rootDir: string): Promise<FormalDependencyOverrides> {
     return {};
   },
