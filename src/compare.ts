@@ -14,6 +14,12 @@ export interface ComparisonSummary {
     source: Record<string, number>;
     target: Record<string, number>;
   };
+  informal_edges: {
+    source_count: number;
+    target_count: number;
+    missing_in_target: Array<[string, string]>;
+    missing_in_source: Array<[string, string]>;
+  };
 }
 
 function countKindsFromMigrated(entries: MigratedEntry[]): Record<string, number> {
@@ -41,6 +47,14 @@ export function compareMigratedEntriesToRegistry(
   const targetIds = registry.entries.map((entry) => entry.document.frontMatter.id).sort();
   const targetSet = new Set(targetIds);
   const sourceSet = new Set(sourceIds);
+  const sourceEdges = migrated.flatMap((entry) =>
+    entry.depends_on.informal.map((dep) => [entry.id, dep] as [string, string]),
+  );
+  const targetEdges = registry.entries.flatMap((entry) =>
+    entry.document.frontMatter.depends_on.informal.map((dep) => [entry.document.frontMatter.id, dep] as [string, string]),
+  );
+  const sourceEdgeKeys = new Set(sourceEdges.map(([from, to]) => `${from}=>${to}`));
+  const targetEdgeKeys = new Set(targetEdges.map(([from, to]) => `${from}=>${to}`));
 
   return {
     source_entry_count: sourceIds.length,
@@ -52,6 +66,12 @@ export function compareMigratedEntriesToRegistry(
     kind_counts: {
       source: countKindsFromMigrated(migrated),
       target: countKindsFromRegistry(registry),
+    },
+    informal_edges: {
+      source_count: sourceEdges.length,
+      target_count: targetEdges.length,
+      missing_in_target: sourceEdges.filter(([from, to]) => !targetEdgeKeys.has(`${from}=>${to}`)),
+      missing_in_source: targetEdges.filter(([from, to]) => !sourceEdgeKeys.has(`${from}=>${to}`)),
     },
   };
 }

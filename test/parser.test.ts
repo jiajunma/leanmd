@@ -203,6 +203,10 @@ test("compare migrated blueprint entries to project registry", async () => {
   assert.deepEqual(summary.missing_in_source, []);
   assert.equal(summary.kind_counts.source.theorem, 1);
   assert.equal(summary.kind_counts.target.definition, 1);
+  assert.equal(summary.informal_edges.source_count, 1);
+  assert.equal(summary.informal_edges.target_count, 1);
+  assert.deepEqual(summary.informal_edges.missing_in_target, []);
+  assert.deepEqual(summary.informal_edges.missing_in_source, []);
 });
 
 test("build benchmark report", async () => {
@@ -215,6 +219,7 @@ test("build benchmark report", async () => {
   assert.equal(report.benchmark.id, "pfr");
   assert.equal(report.comparison.source_entry_count, 2);
   assert.deepEqual(report.comparison.missing_in_target, []);
+  assert.equal(report.comparison.informal_edges.source_count, 1);
 });
 
 test("materialize benchmark project", async () => {
