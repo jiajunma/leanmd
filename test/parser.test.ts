@@ -8,6 +8,7 @@ import { loadBenchmarkById, loadBenchmarks } from "../src/benchmarks.js";
 import { writeBenchmarkArtifact } from "../src/benchmark-artifact.js";
 import { buildBenchmarkDiffReport } from "../src/benchmark-diff-report.js";
 import { buildBenchmarkReport } from "../src/benchmark-report.js";
+import { buildBenchmarkSummaryReport } from "../src/benchmark-summary.js";
 import { runBenchmarkPipeline } from "../src/benchmark-run.js";
 import { materializeBenchmarkProject } from "../src/materialize.js";
 import { migrateBlueprintFile, migrateBlueprintPath, writeMigratedEntries } from "../src/blueprint.js";
@@ -234,6 +235,12 @@ test("build benchmark diff report", async () => {
   assert.equal(report.benchmark.id, "pfr");
   assert.equal(report.summary.entry_count_difference, 0);
   assert.equal(report.summary.informal_edge_count_difference, 0);
+});
+
+test("build benchmark summary report", async () => {
+  const summary = await buildBenchmarkSummaryReport("pfr");
+  assert.equal(summary.benchmark_id, "pfr");
+  assert.equal(summary.structure_comparison.entry_count_difference, 0);
 });
 
 test("materialize benchmark project", async () => {

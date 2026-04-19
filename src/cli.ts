@@ -5,6 +5,7 @@ import { writeBenchmarkArtifact } from "./benchmark-artifact.js";
 import { runLeanBlueprintWebBaseline } from "./benchmark-baseline.js";
 import { buildBenchmarkDiffReport } from "./benchmark-diff-report.js";
 import { buildBenchmarkReport } from "./benchmark-report.js";
+import { buildBenchmarkSummaryReport } from "./benchmark-summary.js";
 import { loadBenchmarkById, loadBenchmarks } from "./benchmarks.js";
 import { runBenchmarkPipeline } from "./benchmark-run.js";
 import { migrateBlueprintPath, writeMigratedEntries } from "./blueprint.js";
@@ -21,7 +22,7 @@ async function main(): Promise<void> {
   const [, , command, target, maybeOutDir, ...rest] = process.argv;
 
   if (!command || !target) {
-    console.error("Usage: leanmd <entry|overview|check|sync|sync-write|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report|benchmark-diff|materialize-benchmark|benchmark-run|benchmark-baseline-blueprint> <path> [arg]");
+    console.error("Usage: leanmd <entry|overview|check|sync|sync-write|context|review|export|build|migrate-blueprint|compare-blueprint|benchmarks|benchmark|benchmark-report|benchmark-diff|benchmark-summary|materialize-benchmark|benchmark-run|benchmark-baseline-blueprint> <path> [arg]");
     process.exitCode = 1;
     return;
   }
@@ -213,6 +214,13 @@ async function main(): Promise<void> {
     const report = await buildBenchmarkDiffReport(target, maybeOutDir, blueprintPath, projectRoot);
     await writeBenchmarkArtifact(maybeOutDir, "diff-summary", report);
     console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  if (command === "benchmark-summary") {
+    const summary = await buildBenchmarkSummaryReport(target);
+    await writeBenchmarkArtifact(target, "summary", summary);
+    console.log(JSON.stringify(summary, null, 2));
     return;
   }
 

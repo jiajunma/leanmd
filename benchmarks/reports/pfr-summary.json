@@ -1,0 +1,16 @@
+{
+  "benchmark_id": "pfr",
+  "timing_comparison": {
+    "our_pipeline_ms": 224.71074999999996,
+    "leanblueprint_web_ms": 9758.76325,
+    "speedup_factor": 43.42811035965125
+  },
+  "structure_comparison": {
+    "entry_count_difference": 0,
+    "missing_entry_count_in_target": 0,
+    "missing_entry_count_in_source": 0,
+    "informal_edge_count_difference": 0,
+    "missing_informal_edge_count_in_target": 0,
+    "missing_informal_edge_count_in_source": 0
+  }
+}
